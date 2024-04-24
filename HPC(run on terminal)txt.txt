@@ -1,0 +1,1544 @@
+Assignmengt 1 - BFS DFS(If asked combined)
+------------------------------------------------------------------------------------------------------
+
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <omp.h>
+
+using namespace std;
+
+// Graph class representing an undirected graph using adjacency list representation
+class Graph {
+private:
+    int numVertices;          // Number of vertices
+    vector<vector<int>> adj;  // Adjacency list
+
+public:
+    Graph(int vertices) : numVertices(vertices), adj(vertices) {}
+
+    // Add an edge between two vertices
+    void addEdge(int src, int dest) {
+        adj[src].push_back(dest);
+        adj[dest].push_back(src);
+    }
+
+    // View the graph
+    void viewGraph() {
+        cout << "Graph:\n";
+        for (int i = 0; i < numVertices; i++) {
+            cout << "Vertex " << i << " -> ";
+            for (int neighbor : adj[i]) {
+                cout << neighbor << " ";
+            }
+            cout << endl;
+        }
+    }
+
+    // Perform Breadth First Search (BFS) in parallel
+    void bfs(int startVertex) {
+        vector<bool> visited(numVertices, false);
+        queue<int> q;
+
+        // Mark the start vertex as visited and enqueue it
+        visited[startVertex] = true;
+        q.push(startVertex);
+
+        while (!q.empty()) {
+            int currentVertex = q.front();
+            q.pop();
+            cout << currentVertex << " ";
+
+            // Enqueue all adjacent unvisited vertices
+            #pragma omp parallel for
+            for (int neighbor : adj[currentVertex]) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    q.push(neighbor);
+                }
+            }
+        }
+    }
+
+    // Perform Depth First Search (DFS) in parallel
+    void dfs(int startVertex) {
+        vector<bool> visited(numVertices, false);
+        stack<int> s;
+
+        // Mark the start vertex as visited and push it onto the stack
+        visited[startVertex] = true;
+        s.push(startVertex);
+
+        while (!s.empty()) {
+            int currentVertex = s.top();
+            s.pop();
+            cout << currentVertex << " ";
+
+            // Push all adjacent unvisited vertices onto the stack
+            #pragma omp parallel for
+            for (int neighbor : adj[currentVertex]) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    s.push(neighbor);
+                }
+            }
+        }
+    }
+};
+
+int main() {
+    int numVertices;
+    cout << "Enter the number of vertices in the graph: ";
+    cin >> numVertices;
+
+    // Create a graph with the specified number of vertices
+    Graph graph(numVertices);
+
+    int numEdges;
+    cout << "Enter the number of edges in the graph: ";
+    cin >> numEdges;
+
+    cout << "Enter the edges (source destination):\n";
+    for (int i = 0; i < numEdges; i++) {
+        int src, dest;
+        cin >> src >> dest;
+        graph.addEdge(src, dest);
+    }
+
+    // View the graph
+    graph.viewGraph();
+
+    int startVertex;
+    cout << "Enter the starting vertex for BFS and DFS: ";
+    cin >> startVertex;
+
+    cout << "Breadth First Search (BFS): ";
+    graph.bfs(startVertex);
+    cout << endl;
+
+    cout << "Depth First Search (DFS): ";
+    graph.dfs(startVertex);
+    cout << endl;
+
+    return 0;
+}
+
+
+---------------------------------------------------------------------------------------------------------
+input and output -
+
+Enter the number of vertices in the graph: 3
+Enter the number of edges in the graph: 3
+Enter the edges (source destination):
+0 1
+1 2
+2 0
+Graph:
+Vertex 0 -> 1 2 
+Vertex 1 -> 0 2 
+Vertex 2 -> 1 0 
+Enter the starting vertex for BFS and DFS: 0
+Breadth First Search (BFS): 0 1 2 
+Depth First Search (DFS): 0 2 1
+----------------------------------------------------------------------------------------------------------
+Code Explaination:
+
+Header Includes:
+#include <iostream>: Includes input-output operations.
+#include <vector>: Provides dynamic array functionality.
+#include <queue> and #include <stack>: Include data structures for implementing BFS and DFS, respectively.
+#include <omp.h>: Includes OpenMP for parallelization.
+Graph Class:
+Represents an undirected graph using an adjacency list.
+Private members:
+numVertices: Number of vertices in the graph.
+adj: Vector of vectors to store adjacency lists.
+Public methods:
+Constructor to initialize the graph with a given number of vertices.
+addEdge: Adds an edge between two vertices.
+viewGraph: Displays the adjacency list representation of the graph.
+bfs: Performs Breadth First Search (BFS) starting from a given vertex.
+dfs: Performs Depth First Search (DFS) starting from a given vertex.
+Constructor and Add Edge Method:
+Constructor initializes the graph with a specified number of vertices.
+addEdge method adds an edge between two vertices in the graph.
+View Graph Method:
+Displays the adjacency list representation of the graph.
+BFS and DFS Methods:
+bfs method performs Breadth First Search starting from a given vertex.
+dfs method performs Depth First Search starting from a given vertex.
+Both methods use parallelization to explore neighboring vertices concurrently.
+Main Function:
+Handles user input for creating the graph, adding edges, specifying the starting vertex for BFS and DFS, and displaying the results.
+
+
+Theory:
+
+There are many ways to traverse graphs. BFS is the most commonly used
+approach.
+BFS is a traversing algorithm where you should start traversing from a selected node (source or starting node)
+and traverse the graph layer wise thus exploring the neighbor nodes (nodes which are directly connected to
+source node). You must then move towards the next-level neighbor nodes.
+As the name BFS suggests, you are required to traverse the graph breadthwise as follows:
+1. First move horizontally and visit all the nodes of the current layer
+2. Move to the next layer
+
+Parallel Breadth First Search
+1. To design and implement parallel breadth first search, you will need to divide the graph into
+smaller sub-graphs and assign each sub-graph to a different processor or thread.
+2. Each processor or thread will then perform a breadth first search on its assigned sub-graph
+concurrently with the other processors or threads.
+3. Two methods: Vertex byVertex OR Level By Level
+
+Parallel Depth First Search:
+• Different subtrees can be searched concurrently.
+• Subtrees can be very different in size.
+• Estimate the size of a subtree rooted at a node.
+• Dynamic load balancing is required.
+
+OpenMP Section Compiler Directive:
+A parallel loop is an example of independent work units that are numbered. If you have a pre- determined
+number of independent work units, the sections is more appropriate. In a sections construct can be any
+number of section constructs. These need to be independent, and they can be execute by any available thread
+in the current team, including having multiple sections done by the same thread.
+The sections construct is a non-iterative work sharing construct that contains a set of structured blocks that
+are to be distributed among and executed by the threads in a team. Each structured block is executed once by
+one of the threads in the team in the context of its implicit task
+
+
+advantages of openmp-
+
+It allows for efficient utilization of available hardware resources, leading to faster execution times for parallelizable tasks.
+
+This incremental approach enables developers to focus on optimizing critical sections of their code for parallel execution while leaving other parts sequential.
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+Assignment 1 (If asked separate):
+
+BFS-
+
+
+#include<iostream>
+#include<stdlib.h>
+#include<queue>
+using namespace std;
+
+
+class node
+{
+   public:
+    
+    node *left, *right;
+    int data;
+
+};    
+
+class Breadthfs
+{
+ 
+ public:
+ 
+ node *insert(node *, int);
+ void bfs(node *);
+ 
+};
+
+
+node *insert(node *root, int data)
+// inserts a node in tree
+{
+
+    if(!root)
+    {
+   	 
+   	 root=new node;
+   	 root->left=NULL;
+   	 root->right=NULL;
+   	 root->data=data;
+   	 return root;
+    }
+
+    queue<node *> q;
+    q.push(root);
+    
+    while(!q.empty())
+    {
+
+   	 node *temp=q.front();
+   	 q.pop();
+    
+   	 if(temp->left==NULL)
+   	 {
+   		 
+   		 temp->left=new node;
+   		 temp->left->left=NULL;
+   		 temp->left->right=NULL;
+   		 temp->left->data=data;    
+   		 return root;
+   	 }
+   	 else
+   	 {
+
+   	 q.push(temp->left);
+
+   	 }
+
+   	 if(temp->right==NULL)
+   	 {
+   		 
+   		 temp->right=new node;
+   		 temp->right->left=NULL;
+   		 temp->right->right=NULL;
+   		 temp->right->data=data;    
+   		 return root;
+   	 }
+   	 else
+   	 {
+
+   	 q.push(temp->right);
+
+   	 }
+
+    }
+    
+}
+
+
+void bfs(node *head)
+{
+
+   	 queue<node*> q;
+   	 q.push(head);
+   	 
+   	 int qSize;
+   	 
+   	 while (!q.empty())
+   	 {
+   		 qSize = q.size();
+   		 #pragma omp parallel for
+            	//creates parallel threads
+   		 for (int i = 0; i < qSize; i++)
+   		 {
+   			 node* currNode;
+   			 #pragma omp critical
+   			 {
+   			   currNode = q.front();
+   			   q.pop();
+   			   cout<<"\t"<<currNode->data;
+   			   
+   			 }// prints parent node
+   			 #pragma omp critical
+   			 {
+   			 if(currNode->left)// push parent's left node in queue
+   				 q.push(currNode->left);
+   			 if(currNode->right)
+   				 q.push(currNode->right);
+   			 }// push parent's right node in queue   	 
+
+   		 }
+   	 }
+
+}
+
+int main(){
+
+    node *root=NULL;
+    int data;
+    char ans;
+    
+    do
+    {
+   	 cout<<"\n enter data=>";
+   	 cin>>data;
+   	 
+   	 root=insert(root,data);
+    
+   	 cout<<"do you want insert one more node?";
+   	 cin>>ans;
+    
+    }while(ans=='y'||ans=='Y');
+    
+    bfs(root);
+    
+    return 0;
+}
+
+
+
+Theory:
+
+The nodes are printed in breadth-first order. The #pragma omp parallel for statement is used to parallelize the for loop that processes each level of the binary tree. The #pragma omp critical statement is used to synchronize access to shared data structures, such as the queue that stores the nodes of the binary tree.
+
+Code Explaination:
+
+This section includes several C++ standard libraries:
+iostream: For input and output operations.
+stdlib.h: Standard library for general-purpose functions like memory allocation and program control.
+queue: For using the queue data structure.
+
+This class defines a basic structure for a node in a binary tree.
+Each node has two pointers left and right pointing to its left and right children.
+It also has an integer variable data to store the value of the node.
+
+This class Breadthfs contains two member functions:
+insert(node*, int): Inserts a node into the binary tree.
+bfs(node*): Performs Breadth First Search (BFS) traversal on the binary tree.
+
+node *insert(node *root, int data): This function inserts a new node with data data into the binary tree.
+It takes the root of the tree and the data to be inserted.
+If the root is NULL, meaning the tree is empty, a new node is created and made the root.
+Otherwise, a queue q is used to perform a level-order traversal.
+The function iterates through the tree level by level using the queue.
+At each level, it checks if the current node has an empty left or right child.
+If it finds an empty child, it creates a new node with the given data and attaches it as the left or right child of the current node.
+The function returns the modified root.
+
+void bfs(node *head): This function performs Breadth First Search (BFS) traversal starting from the head node of the binary tree.
+It uses a queue q to keep track of nodes to visit.
+The function iterates while the queue is not empty.
+In each iteration, it processes nodes at the current level by:
+Storing the size of the queue (qSize) before processing the current level. This is used to limit the loop to process only the nodes at the current level.
+A parallel loop is used (marked by #pragma omp parallel for) to process nodes at the current level in parallel.
+Each thread pops a node (currNode) from the queue.
+It then prints the value of the popped node (cout << "\t" << currNode->data;).
+If the popped node has left and right children, they are pushed into the queue for further processing.
+This parallelism allows nodes at the same level to be processed concurrently, enhancing efficiency.
+
+The main function:
+Initializes the root of the binary tree as NULL.
+Asks the user to input data for each node and inserts nodes into the binary tree using the insert function.
+After all nodes are inserted, it performs a Breadth First Search (BFS) traversal of the binary tree using the bfs function.
+The BFS traversal results are printed, displaying the data of each node level by level.
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+DFS(If asked separate)-
+
+#include <iostream>
+#include <vector>
+#include <stack>
+#include <omp.h>
+
+using namespace std;
+
+const int MAX = 100000;
+vector<int> graph[MAX];
+bool visited[MAX];
+
+void dfs(int node) {
+	stack<int> s;
+	s.push(node);
+
+	while (!s.empty()) {
+    	int curr_node = s.top();
+    	s.pop();
+
+    	if (!visited[curr_node]) {
+        	visited[curr_node] = true;
+        	
+        	if (visited[curr_node]) {
+        	cout << curr_node << " ";
+    	}
+
+        	#pragma omp parallel for
+        	for (int i = 0; i < graph[curr_node].size(); i++) {
+            	int adj_node = graph[curr_node][i];
+            	if (!visited[adj_node]) {
+                	s.push(adj_node);
+            	}
+        	}
+    	}
+	}
+}
+
+int main() {
+	int n, m, start_node;
+	cout << "Enter No of Node,Edges,and start node:" ;
+	cin >> n >> m >> start_node;
+         //n: node,m:edges
+         
+cout << "Enter Pair of edges:" ;
+	for (int i = 0; i < m; i++) {
+    	int u, v;
+    		
+    	cin >> u >> v;
+//u and v: Pair of edges
+    	graph[u].push_back(v);
+    	graph[v].push_back(u);
+	}
+
+	#pragma omp parallel for
+	for (int i = 0; i < n; i++) {
+    	visited[i] = false;
+	}
+
+	dfs(start_node);
+
+/*	for (int i = 0; i < n; i++) {
+    	if (visited[i]) {
+        	cout << i << " ";
+    	}
+	}*/
+
+	return 0;
+}
+
+
+Code Explaination:
+
+This section includes several C++ standard libraries:
+iostream: For input and output operations.
+vector: To use the vector container.
+stack: To use the stack container.
+omp.h: Header file for OpenMP, an API for multi-platform shared-memory multiprocessing programming.
+
+const int MAX = 100000;: Defines a constant MAX with a value of 100,000, representing the maximum size of the graph.
+vector<int> graph[MAX];: An array of vectors. Each graph[i] is a vector of integers, representing the adjacency list of the graph. graph is used to store the graph structure.
+bool visited[MAX];: An array of booleans to track whether a node has been visited during traversal.
+
+void dfs(int node) {: This function performs a Depth First Search (DFS) starting from the given node.
+Inside the function:
+A stack s is created to store nodes to be visited.
+The function enters a while loop that continues as long as the stack s is not empty.
+The top element of the stack (curr_node) is retrieved, removed from the stack, and processed.
+If curr_node has not been visited:
+It's marked as visited (visited[curr_node] = true;).
+If curr_node is visited (which it is, due to the preceding line), its value is printed (cout << curr_node << " ";).
+The adjacent nodes of curr_node are iterated through in a parallel loop (using OpenMP).
+
+int main() {: The main function where the program execution begins.
+int n, m, start_node;: Variables to store the number of nodes, edges, and the starting node for DFS.
+cout << "Enter No of Node, Edges, and start node: ";: Prompting the user to enter the number of nodes, edges, and the starting node.
+cin >> n >> m >> start_node;: Reading the values for n, m, and start_node from the user.
+
+This loop reads m pairs of edges from the user and populates the graph with these edges.
+Each pair of input (u, v) represents an edge from node u to node v and vice versa.
+The graph is represented as an adjacency list, so both (u, v) and (v, u) are added to ensure bidirectional edges.
+
+This loop initializes the visited array for all nodes to false.
+Each node starts as unvisited before the DFS traversal begins.
+
+The dfs(start_node) function is called with the start_node provided by the user.
+This initiates the Depth First Search traversal from the start_node through the graph.
+Finally, the main function returns 0 to indicate successful completion of the program.
+
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+Assignment 2 Buuble and merge sort(If asked combined)-
+
+#include <iostream>
+#include <ctime>
+#include <cstdlib>
+#include <omp.h>
+
+using namespace std;
+
+void bubbleSort(int arr[], int n) {
+    for (int i = 0; i < n - 1; ++i) {
+        for (int j = 0; j < n - i - 1; ++j) {
+            if (arr[j] > arr[j + 1]) {
+                swap(arr[j], arr[j + 1]);
+            }
+        }
+    }
+}
+
+void merge(int arr[], int l, int m, int r) {
+    int i, j, k;
+    int n1 = m - l + 1;
+    int n2 = r - m;
+
+    int *L = new int[n1];
+    int *R = new int[n2];
+
+    for (i = 0; i < n1; ++i) {
+        L[i] = arr[l + i];
+    }
+    for (j = 0; j < n2; ++j) {
+        R[j] = arr[m + 1 + j];
+    }
+
+    i = 0;
+    j = 0;
+    k = l;
+
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) {
+            arr[k] = L[i];
+            ++i;
+        } else {
+            arr[k] = R[j];
+            ++j;
+        }
+        ++k;
+    }
+
+    while (i < n1) {
+        arr[k] = L[i];
+        ++i;
+        ++k;
+    }
+
+    while (j < n2) {
+        arr[k] = R[j];
+        ++j;
+        ++k;
+    }
+
+    delete[] L;
+    delete[] R;
+}
+
+void mergeSort(int arr[], int l, int r) {
+    if (l < r) {
+        int m = l + (r - l) / 2;
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            {
+                mergeSort(arr, l, m);
+            }
+            #pragma omp section
+            {
+                mergeSort(arr, m + 1, r);
+            }
+        }
+
+        merge(arr, l, m, r);
+    }
+}
+
+void printArray(int arr[], int size) {
+    for (int i = 0; i < size; ++i) {
+        cout << arr[i] << " ";
+    }
+    cout << endl;
+}
+
+int main() {
+    int n;
+    cout << "Enter the size of the array: ";
+    cin >> n;
+
+    int *arr = new int[n];
+    srand(time(0));
+    for (int i = 0; i < n; ++i) {
+        arr[i] = rand() % 100;
+    }
+
+    // Sequential Bubble Sort
+    clock_t start = clock();
+    bubbleSort(arr, n);
+    clock_t end = clock();
+    double sequentialBubbleTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Parallel Bubble Sort
+    start = clock();
+    #pragma omp parallel
+    {
+        bubbleSort(arr, n);
+    }
+    end = clock();
+    double parallelBubbleTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Merge Sort
+    start = clock();
+    mergeSort(arr, 0, n - 1);
+    end = clock();
+    double sequentialMergeTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Parallel Merge Sort
+    start = clock();
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            mergeSort(arr, 0, n - 1);
+        }
+    }
+    end = clock();
+    double parallelMergeTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Performance measurement
+    cout << "Sequential Bubble Sort Time: " << sequentialBubbleTime << " seconds" << endl;
+    cout << "Parallel Bubble Sort Time: " << parallelBubbleTime << " seconds" << endl;
+    cout << "Sequential Merge Sort Time: " << sequentialMergeTime << " seconds" << endl;
+    cout << "Parallel Merge Sort Time: " << parallelMergeTime << " seconds" << endl;
+
+    delete[] arr;
+
+    return 0;
+}
+
+----------------------------------------------------------------------------------------------------------
+Code Explaination:
+
+Sure, let's break down the code line by line:
+
+1. `#include <iostream>`: This line includes the input-output stream library, which is needed for input and output operations.
+2. `#include <ctime>`: This line includes the C Standard Library's `ctime` header, which provides functions for manipulating time and date information.
+3. `#include <cstdlib>`: This line includes the C Standard Library's `cstdlib` header, which provides functions for generating random numbers (`rand`) and memory management (`malloc`, `free`).
+4. `#include <omp.h>`: This line includes the OpenMP header file, which is used for parallel programming with OpenMP directives and functions.
+
+6. `void bubbleSort(int arr[], int n) {`: This line starts the definition of the `bubbleSort` function, which sorts an integer array `arr` of size `n` using the Bubble Sort algorithm.
+   - `int arr[]`: This parameter represents the integer array to be sorted.
+   - `int n`: This parameter represents the size of the array.
+
+8. `for (int i = 0; i < n - 1; ++i) {`: This line starts a loop that iterates through the array elements, comparing adjacent elements to perform swapping and sorting.
+
+10. `void merge(int arr[], int l, int m, int r) {`: This line starts the definition of the `merge` function, which is used in the Merge Sort algorithm to merge two sorted subarrays into a single sorted array.
+    - `int l`: This parameter represents the left index of the subarray.
+    - `int m`: This parameter represents the middle index of the subarray.
+    - `int r`: This parameter represents the right index of the subarray.
+
+13. `void mergeSort(int arr[], int l, int r) {`: This line starts the definition of the `mergeSort` function, which implements the Merge Sort algorithm to sort an integer array `arr` within the specified range `[l, r]`.
+    - `int arr[]`: This parameter represents the integer array to be sorted.
+    - `int l`: This parameter represents the left index of the subarray.
+    - `int r`: This parameter represents the right index of the subarray.
+
+16. `void printArray(int arr[], int size) {`: This line starts the definition of the `printArray` function, which is used to print the elements of an integer array.
+    - `int arr[]`: This parameter represents the integer array to be printed.
+    - `int size`: This parameter represents the size of the array.
+
+19. `int main() {`: This line starts the definition of the `main` function, which is the entry point of the program.
+21. `int n;`: This line declares an integer variable `n`, which will store the size of the array entered by the user.
+
+23. `cout << "Enter the size of the array: ";`: This line outputs a message prompting the user to enter the size of the array.
+24. `cin >> n;`: This line reads the input from the user, storing the size of the array in the variable `n`.
+
+26. `int *arr = new int[n];`: This line dynamically allocates memory for an integer array of size `n` using the `new` operator.
+
+28-30. This block of code generates random integers between 0 and 99 and assigns them to the elements of the array using the `rand()` function from the C Standard Library.
+
+33-36. This block of code performs sequential Bubble Sort on the array `arr` and measures the time taken for sorting using the `clock()` function from the `ctime` library.
+
+39-42. This block of code performs parallel Bubble Sort on the array `arr` using OpenMP directives and measures the time taken for sorting.
+
+45-48. This block of code performs sequential Merge Sort on the array `arr` and measures the time taken for sorting.
+
+51-57. This block of code performs parallel Merge Sort on the array `arr` using OpenMP directives and measures the time taken for sorting.
+
+60-64. This block of code outputs the time taken for each sorting algorithm in seconds.
+
+66. `delete[] arr;`: This line deallocates the memory allocated for the integer array `arr` using the `delete[]` operator.
+
+68. `return 0;`: This line indicates the end of the `main` function and the successful execution of the program.
+
+Theory:
+
+Parallel Sorting:
+A sequential sorting algorithm may not be efficient enough when we have to sort a huge volume of data.
+Therefore, parallel algorithms are used in sorting.
+Design methodology:
+Based on an existing sequential sort algorithm
+ Try to utilize all resources available
+ Possible to turn a poor sequential algorithm into a reasonable parallel algorithm
+
+Bubble Sort
+The idea of bubble sort is to compare two adjacent elements. If they are not in the right order, switch them.
+Do this comparing and switching (if necessary) until the end of the array is reached.Repeat this process from
+the beginning of the array n times. Average performance is O(n2)
+
+Algorithm for Parallel Bubble Sort
+1. For k = 0 to n-2
+2. If k is even then
+3. for i = 0 to (n/2)-1 do in parallel
+4. If A[2i] > A[2i+1] then
+5. Exchange A[2i] ↔ A[2i+1]
+6. Else
+7. for i = 0 to (n/2)-2 do in parallel8. If
+A[2i+1] > A[2i+2] then
+9. Exchange A[2i+1] ↔ A[2i+2]
+10. Next k
+
+Merge Sort-
+Merge Sort, on the other hand, takes a divide-and-conquer approach to sorting; recursively breaking the input array down until we have sorted tuple-sized subarrays that we can then merge back together at the end.
+Time Complexity-Onlog(n)
+
+Algorithm for Parallel Merge Sort
+1. Procedure parallelMergeSort
+2. Begin
+3. Create processors Pi where i = 1 to n
+4. if i > 0 then recieve size and parent from the root
+5. recieve the list, size and parent from the root
+6. endif
+7. midvalue= listsize/2
+8. if both children is present in the tree then
+9. send midvalue, first child
+10. send listsize-mid,second child
+11. send list, midvalue, first child
+12. send list from midvalue, listsize-midvalue, second child
+13. call mergelist(list,0,midvalue,list, midvalue+1,listsize,temp,0,listsize)
+14. store temp in another array list2
+15. else
+16. call parallelMergeSort(list,0,listsize)
+17. endif
+18. if i >0 then
+19. send list, listsize,parent
+20. endif
+21. end
+
+ALGORITHM ANALYSIS
+1. Time Complexity Of parallel Merge Sort and parallel Bubble sort in best case is( when all datais already in
+sorted form):O(n)
+2. Time ComplexityOf parallel Merge Sort and parallel Bubble sort in worst case is: O(n logn)
+3. Time Complexity Of parallel Merge Sort and parallel Bubble sort in average case is: O(nlogn)
+
+
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+Bubble Sort(If asked separate)-
+
+#include<iostream>
+#include<stdlib.h>
+#include<omp.h>
+using namespace std;
+
+void bubble(int *, int);
+void swap(int &, int &);
+
+
+void bubble(int *a, int n)
+{
+    for(  int i = 0;  i < n;  i++ )
+     {  	 
+   	 int first = i % 2; 	 
+
+   	 #pragma omp parallel for shared(a,first)
+   	 for(  int j = first;  j < n-1;  j += 2  )
+   	   {  	 
+   		 if(  a[ j ]  >  a[ j+1 ]  )
+   		  {  	 
+     			 swap(  a[ j ],  a[ j+1 ]  );
+   		  }  	 
+   		   }  	 
+     }
+}
+
+
+void swap(int &a, int &b)
+{
+
+    int test;
+    test=a;
+    a=b;
+    b=test;
+
+}
+
+int main()
+{
+
+    int *a,n;
+    cout<<"\n enter total no of elements=>";
+    cin>>n;
+    a=new int[n];
+    cout<<"\n enter elements=>";
+    for(int i=0;i<n;i++)
+    {
+   	 cin>>a[i];
+    }
+    
+    bubble(a,n);
+    
+    cout<<"\n sorted array is=>\n";
+    for(int i=0;i<n;i++)
+    {
+   	 cout<<a[i]<<endl;
+    }
+
+
+return 0;
+}
+
+Code Explaination-
+
+iostream: Included for input and output operations.
+stdlib.h: Standard library for general-purpose functions like memory allocation and program control.
+omp.h: This header file is for OpenMP (Open Multi-Processing) which is used for parallel processing.
+
+oid bubble(int *a, int n): This function performs the bubble sort algorithm on an array a of size n.
+The outer loop (for (int i = 0; i < n; i++)) runs through each element of the array.
+Inside the outer loop, there's another loop with OpenMP directives:
+int first = i % 2;: This determines whether the current pass through the array starts with the first element or the second. It alternates between 0 and 1.
+#pragma omp parallel for shared(a, first): This line starts a parallel region for the loop.
+#pragma omp parallel for: This pragma tells OpenMP to parallelize the following for loop.
+shared(a, first): Specifies that the variables a and first are shared among all threads.
+
+for (int j = first; j < n - 1; j += 2): The inner loop starts from first and goes up to n - 1 in steps of 2.
+It compares adjacent elements and swaps them if they are in the wrong order.
+The sorting happens with each thread working on its portion of the array in parallel.
+
+This swap function is a simple function that exchanges the values of two integers using pass-by-reference.
+It takes two integer references (int &a, int &b) and swaps their values using a temporary variable test.
+
+The main function:
+Reads the total number of elements (n) to be sorted.
+Dynamically allocates an array a of size n to hold the elements.
+Reads the elements from the user and stores them in the array.
+Calls the bubble sort function to sort the array in ascending order.
+Displays the sorted array to the user.
+Deletes the dynamically allocated array a to free up memory.
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+Merge Sort-
+
+#include<iostream>
+#include<stdlib.h>
+#include<omp.h>
+using namespace std;
+
+
+void mergesort(int a[],int i,int j);
+void merge(int a[],int i1,int j1,int i2,int j2);
+
+void mergesort(int a[],int i,int j)
+{
+	int mid;
+	if(i<j)
+	{
+    	mid=(i+j)/2;
+   	 
+    	#pragma omp parallel sections
+    	{
+
+        	#pragma omp section
+        	{
+            	mergesort(a,i,mid);   	 
+        	}
+
+        	#pragma omp section
+        	{
+            	mergesort(a,mid+1,j);    
+        	}
+    	}
+
+    	merge(a,i,mid,mid+1,j);    
+	}
+
+}
+ 
+void merge(int a[],int i1,int j1,int i2,int j2)
+{
+	int temp[1000];    
+	int i,j,k;
+	i=i1;    
+	j=i2;    
+	k=0;
+    
+	while(i<=j1 && j<=j2)    
+	{
+    	if(a[i]<a[j])
+    	{
+        	temp[k++]=a[i++];
+    	}
+    	else
+    	{
+        	temp[k++]=a[j++];
+    }    
+	}
+    
+	while(i<=j1)    
+	{
+    	temp[k++]=a[i++];
+	}
+   	 
+	while(j<=j2)    
+	{
+    	temp[k++]=a[j++];
+	}
+   	 
+	for(i=i1,j=0;i<=j2;i++,j++)
+	{
+    	a[i]=temp[j];
+	}    
+}
+
+
+int main()
+{
+	int *a,n,i;
+	cout<<"\n enter total no of elements=>";
+	cin>>n;
+	a= new int[n];
+
+	cout<<"\n enter elements=>\n";
+	for(i=0;i<n;i++)
+	{
+    	cin>>a[i];
+	}
+   	 
+	mergesort(a, 0, n-1);
+    
+	cout<<"\n sorted array is=>";
+	for(i=0;i<n;i++)
+	{
+    	cout<<"\n"<<a[i];
+	}
+  	 
+	return 0;
+}
+
+
+Explaination:
+
+iostream: Included for input and output operations.
+stdlib.h: Standard library for general-purpose functions like memory allocation and program control.
+omp.h: This header file is for OpenMP (Open Multi-Processing) which is used for parallel processing.
+
+void mergesort(int a[], int i, int j): This function implements the Merge Sort algorithm to sort an array a between indices i and j.
+The function recursively divides the array into halves until single elements remain, then merges them back in sorted order.
+The key part is the use of OpenMP's parallel sections directive:
+#pragma omp parallel sections: This line creates a parallel section where the work is divided into sections that can run concurrently.
+Inside the parallel sections:
+The first section (#pragma omp section) sorts the left half of the array (mergesort(a, i, mid)).
+The second section (#pragma omp section) sorts the right half of the array (mergesort(a, mid + 1, j)).
+After both halves are sorted, the merge function is called to merge the two sorted halves.
+
+void merge(int a[], int i1, int j1, int i2, int j2): This function merges two sorted halves of an array a.
+It creates a temporary array temp to store the merged result.
+The function uses three indices i, j, and k to track positions in the arrays.
+It compares elements from the two halves and puts the smaller one into the temp array.
+The for loop then copies the sorted elements from temp back into the original array a.
+
+The main function:
+Reads the total number of elements (n) to be sorted.
+Dynamically allocates an array a of size n to hold the elements.
+Reads the elements from the user and stores them in the array.
+Calls the mergesort function to sort the array in ascending order.
+Displays the sorted array to the user.
+Deallocates the dynamically allocated array a to free up memory.
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+
+Assignment 3 Min,Max
+
+#include <iostream>
+#include <omp.h>
+#include <climits>
+
+using namespace std;
+
+void min_reduction(int *arr, int size) {
+    int min_value = INT_MAX;
+    for (int i = 0; i < size; i++) {
+        if (arr[i] < min_value) {
+            min_value = arr[i];
+        }
+    }
+    cout << "Minimum Value: " << min_value << endl;
+}
+
+void max_reduction(int *arr, int size) {
+    int max_value = INT_MIN;
+    for (int i = 0; i < size; i++) {
+        if (arr[i] > max_value) {
+            max_value = arr[i];
+        }
+    }
+    cout << "Maximum value: " << max_value << endl;
+}
+
+void sum_reduction(int *arr, int size) {
+    int sum = 0;
+    for (int i = 0; i < size; i++) {
+        sum += arr[i];
+    }
+    cout << "Sum value: " << sum << endl;
+}
+
+void average_reduction(int *arr, int size) {
+    int sum = 0;
+    for (int i = 0; i < size; i++) {
+        sum += arr[i];
+    }
+    cout << "Average value: " << (double)sum / size << endl;
+}
+
+int main() {
+    int size;
+    cout << "Enter the size of the array: ";
+    cin >> size;
+
+    // Allocate memory for the dynamic array
+    int *arr = new int[size];
+
+    // Input array elements from the user
+    cout << "Enter " << size << " integers:" << endl;
+    for (int i = 0; i < size; i++) {
+        cin >> arr[i];
+    }
+
+    // Call reduction functions
+    min_reduction(arr, size);
+    max_reduction(arr, size);
+    sum_reduction(arr, size);
+    average_reduction(arr, size);
+
+    // Deallocate memory for the dynamic array
+    delete[] arr;
+
+    return 0;
+}
+
+
+
+----------------------------------------------------------------------------------------------------------
+Input-output
+Enter the size of the array: 4
+Enter 4 integers:
+2 3 4 5
+Minimum Value: 2
+Maximum value: 5
+Sum value: 14
+Average value: 3.5
+----------------------------------------------------------------------------------------------------------
+Code Explaination:
+
+Sure, here's an explanation of the code line by line:
+
+1. ```cpp
+   #include <iostream>
+   #include <omp.h>
+   #include <climits>
+   ```
+   - These lines include necessary header files:
+     - `iostream` for input-output operations.
+     - `omp.h` for OpenMP parallel programming.
+     - `climits` for using `INT_MAX` and `INT_MIN` constants.
+
+2. ```cpp
+   using namespace std;
+   ```
+   - This line declares that we'll be using the `std` namespace, which includes standard C++ library functions.
+
+3. ```cpp
+   void min_reduction(int *arr, int size) {
+       // Function definition for finding the minimum value in an array.
+   }
+   ```
+   - This line declares a function `min_reduction` that takes a pointer to an integer array `arr` and its size `size` as parameters. It's used to find the minimum value in the array.
+
+4. ```cpp
+   void max_reduction(int *arr, int size) {
+       // Function definition for finding the maximum value in an array.
+   }
+   ```
+   - Similar to the `min_reduction` function, this line declares a function `max_reduction` to find the maximum value in an array.
+
+5. ```cpp
+   void sum_reduction(int *arr, int size) {
+       // Function definition for finding the sum of values in an array.
+   }
+   ```
+   - This line declares a function `sum_reduction` to calculate the sum of all values in an array.
+
+6. ```cpp
+   void average_reduction(int *arr, int size) {
+       // Function definition for finding the average value in an array.
+   }
+   ```
+   - This line declares a function `average_reduction` to compute the average value of elements in an array.
+
+7. ```cpp
+   int main() {
+       // Entry point of the program.
+   }
+   ```
+   - This line defines the `main` function, which serves as the entry point of the program.
+
+8. ```cpp
+   int size;
+   cout << "Enter the size of the array: ";
+   cin >> size;
+   ```
+   - Declares an integer variable `size` to store the size of the array.
+   - Asks the user to enter the size of the array.
+   - Reads the inputted size from the user and stores it in the `size` variable.
+
+9. ```cpp
+   int *arr = new int[size];
+   ```
+   - Dynamically allocates memory for an integer array of size `size` using `new[]` and assigns the pointer to `arr`.
+
+10. ```cpp
+    cout << "Enter " << size << " integers:" << endl;
+    ```
+    - Outputs a prompt asking the user to enter a specific number of integers based on the array size.
+
+11. ```cpp
+    for (int i = 0; i < size; i++) {
+        cin >> arr[i];
+    }
+    ```
+    - Uses a loop to read `size` number of integers from the user and store them in the dynamic array `arr`.
+
+12. ```cpp
+    // Calls each reduction function with the dynamic array and its size as arguments
+    min_reduction(arr, size);
+    max_reduction(arr, size);
+    sum_reduction(arr, size);
+    average_reduction(arr, size);
+    ```
+    - Calls each reduction function (`min_reduction`, `max_reduction`, `sum_reduction`, `average_reduction`) with the dynamic array `arr` and its size `size` as arguments to perform the respective reductions.
+
+13. ```cpp
+    delete[] arr;
+    ```
+    - Deallocates the dynamically allocated memory for the array using `delete[]` to free up the memory after its use.
+
+14. ```cpp
+    return 0;
+    ```
+    - Indicates that the `main` function execution is successful and the program exits with a return status of 0.
+
+
+
+Theory:
+
+OpenMP:
+OpenMP is a set of C/C++ pragmas which provide the programmer a high-level front-end interface which
+get translated as calls to threads. The key phrase here is "higher-level"; the goal is to better enable the
+programmer to "think parallel" alleviating him/her of the burden and distraction of dealing with setting up
+and coordinating threads. For example, the OpenMP directive. 
+
+Parallel reduction:
+
+Parallel reduction is a technique used in parallel programming to efficiently combine a collection of elements into a single value. It leverages multiple processors or cores to perform calculations simultaneously, speeding up the process compared to traditional serial reduction on a single core.
+
+Here's how it works:
+
+Reduction Operator: You define a function (the reduction operator) that takes two elements and combines them into a single value. This function is associative, meaning the order in which elements are combined doesn't affect the final result (a + b = b + a). Common examples include addition, finding the minimum or maximum value, etc.
+
+Divide and Conquer: The data is divided among multiple processors or cores. Each core performs the reduction operation on its assigned portion of the data independently.
+
+Merge and Reduce: The partial results from each core are then progressively merged and reduced further using the same operator. This often involves a series of synchronization steps between cores to ensure data consistency.
+
+Final Result:  The final reduction step combines the remaining partial results into a single value, which is the overall result for the entire data collection.
+
+Benefits of Parallel Reduction:
+
+Faster Processing: By distributing the workload across multiple cores, parallel reduction significantly reduces the processing time for large datasets.
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+Assignment 4 - CUDA
+(On jupyter Notebook)
+
+1) Vector Addition
+
+!nvcc --version
+_____________________________________________________
+
+!pip install git+https://github.com/andreinechaev/nvcc4jupyter.git
+_____________________________________________________
+
+%load_ext nvcc_plugin
+
+______________________________________________________
+%%cu
+
+#include 
+
+// CUDA kernel for vector addition
+__global__ void vectorAdd(int* a, int* b, int* c, int size) 
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < size) {
+        c[tid] = a[tid] + b[tid];
+    }
+}
+
+int main() 
+{
+    int size = 100;  // Size of the vectors
+    int* a, * b, * c;    // Host vectors
+    int* dev_a, * dev_b, * dev_c;  // Device vectors
+
+    // Allocate memory for host vectors
+    a = (int*)malloc(size * sizeof(int));
+    b = (int*)malloc(size * sizeof(int));
+    c = (int*)malloc(size * sizeof(int));
+
+    // Initialize host vectors
+    for (int i = 0; i < size; i++) {
+        a[i] = i;
+        b[i] = 2 * i;
+    }
+
+    // Allocate memory on the device for device vectors
+    cudaMalloc((void**)&dev_a, size * sizeof(int));
+    cudaMalloc((void**)&dev_b, size * sizeof(int));
+    cudaMalloc((void**)&dev_c, size * sizeof(int));
+
+    // Copy host vectors to device
+    cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
+
+    // Launch kernel for vector addition
+    int blockSize = 256;
+    int gridSize = (size + blockSize - 1) / blockSize;
+    vectorAdd<<>>(dev_a, dev_b, dev_c, size);
+
+    // Copy result from device to host
+    cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // Print result
+    for (int i = 0; i < size; i++) {
+        printf("%d + %d = %d\n", a[i], b[i], c[i]);
+    }
+
+    // Free device memory
+    cudaFree(dev_a);
+    cudaFree(dev_b);
+    cudaFree(dev_c);
+
+    // Free host memory
+    free(a);
+    free(b);
+    free(c);
+
+    return 0;
+}
+
+------------------------------------------------------------------------------------------------------
+Code Explaination:
+
+This code performs vector addition using CUDA C++. Let's go through it step by step:
+
+1. `%%cu`:
+   - This line indicates that the following code cell contains CUDA C++ code and should be compiled accordingly.
+
+2. `#include <cuda_runtime.h>`:
+   - This line includes the CUDA runtime library header, which provides functions and definitions for CUDA programming.
+
+3. `__global__ void vectorAdd(int* a, int* b, int* c, int size)`:
+   - This line defines a CUDA kernel function named `vectorAdd` for performing vector addition.
+   - The `__global__` qualifier indicates that this function will be executed on the GPU.
+   - It takes pointers to integer arrays `a`, `b`, and `c`, along with an integer `size` as parameters.
+
+4. `int main()`:
+   - This is the main function where the execution of the CUDA program begins.
+
+5. `int size = 100;`:
+   - Initializes the size of the vectors to be 100.
+
+6. `int* a, * b, * c;`:
+   - Declares pointers to integer arrays `a`, `b`, and `c`, which will be used for host vectors.
+
+7. `int* dev_a, * dev_b, * dev_c;`:
+   - Declares pointers to integer arrays `dev_a`, `dev_b`, and `dev_c`, which will be used for device vectors (allocated on the GPU).
+
+8. Memory Allocation and Initialization:
+   - Allocates memory for host vectors `a`, `b`, and `c` using `malloc`.
+   - Initializes host vectors `a` and `b` with values.
+
+9. Memory Allocation on the Device:
+   - Allocates memory on the device for device vectors `dev_a`, `dev_b`, and `dev_c` using `cudaMalloc`.
+
+10. Data Transfer:
+    - Copies data from host vectors `a` and `b` to device vectors `dev_a` and `dev_b` using `cudaMemcpy` with `cudaMemcpyHostToDevice` direction.
+
+11. Kernel Launch:
+    - Computes the grid and block dimensions for launching the CUDA kernel (`vectorAdd`).
+    - Launches the kernel using `<<<gridSize, blockSize>>>` syntax, passing device vectors `dev_a`, `dev_b`, `dev_c`, and the size to the kernel.
+
+12. Copy Result from Device to Host:
+    - Copies the result vector `dev_c` from the device to the host vector `c` using `cudaMemcpy` with `cudaMemcpyDeviceToHost` direction.
+
+13. Print Result:
+    - Prints the elements of vectors `a`, `b`, and `c` along with their corresponding indices, showing the vector addition result.
+
+14. Memory Deallocation:
+    - Frees the allocated memory for device vectors using `cudaFree`.
+    - Frees the allocated memory for host vectors using `free`.
+
+15. `return 0;`:
+    - Indicates successful execution of the program and returns 0 to the operating system.
+
+
+__________________________________________________________________________________________________________
+
+2) Matrix Multiplication-
+
+%%cu
+
+#include 
+
+// CUDA kernel for matrix multiplication
+__global__ void matrixMul(int* a, int* b, int* c, int rowsA, int colsA, int colsB) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int sum = 0;
+    if (row < rowsA && col < colsB) {
+        for (int i = 0; i < colsA; i++) {
+            sum += a[row * colsA + i] * b[i * colsB + col];
+        }
+        c[row * colsB + col] = sum;
+    }
+}
+
+int main() {
+    int rowsA = 10;  // Rows of matrix A
+    int colsA = 10;  // Columns of matrix A
+    int rowsB = colsA; // Rows of matrix B
+    int colsB = 10;  // Columns of matrix B
+
+    int* a, * b, * c;  // Host matrices
+    int* dev_a, * dev_b, * dev_c;  // Device matrices
+
+    // Allocate memory for host matrices
+    a = (int*)malloc(rowsA * colsA * sizeof(int));
+    b = (int*)malloc(rowsB * colsB * sizeof(int));
+    c = (int*)malloc(rowsA * colsB * sizeof(int));
+
+    // Initialize host matrices
+    for (int i = 0; i < rowsA * colsA; i++) {
+        a[i] = i;
+    }
+    for (int i = 0; i < rowsB * colsB; i++) {
+        b[i] = 2 * i;
+    }
+
+    // Allocate memory on the device for device matrices
+    cudaMalloc((void**)&dev_a, rowsA * colsA * sizeof(int));
+    cudaMalloc((void**)&dev_b, rowsB * colsB * sizeof(int));
+    cudaMalloc((void**)&dev_c, rowsA * colsB * sizeof(int));
+
+    // Copy host matrices to device
+    cudaMemcpy(dev_a, a, rowsA * colsA * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_b, b, rowsB * colsB * sizeof(int), cudaMemcpyHostToDevice);
+
+    // Define grid and block dimensions
+    dim3 blockSize(16, 16);
+    dim3 gridSize((colsB + blockSize.x - 1) / blockSize.x, (rowsA + blockSize.y - 1) / blockSize.y);
+
+    // Launch kernel for matrix multiplication
+    matrixMul<<>>(dev_a, dev_b, dev_c, rowsA, colsA, colsB);
+
+    // Copy result from device to host
+    cudaMemcpy(c, dev_c, rowsA * colsB * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // Print result
+    printf("Result:\n");
+    for (int i = 0; i < rowsA; i++) {
+        for (int j = 0; j < colsB; j++) {
+            printf("%d ", c[i * colsB + j]);
+        }
+        printf("\n");
+    }
+
+    // Free device memory
+    cudaFree(dev_a);
+    cudaFree(dev_b);
+    cudaFree(dev_c);
+
+    // Free host memory
+    free(a);
+    free(b);
+    free(c);
+
+    return 0;
+}
+
+
+----------------------------------------------------------------------------------------------------------
+Code Explaination:
+
+Sure, here's an explanation of the CUDA C++ code for matrix multiplication:
+
+1. `%%cu`:
+   - This line indicates that the following code cell contains CUDA C++ code and should be compiled accordingly.
+
+2. `#include <stdio.h>`:
+   - This line includes the standard input/output header file for using `printf`.
+
+3. `__global__ void matrixMul(int* a, int* b, int* c, int rowsA, int colsA, int colsB)`:
+   - This line defines a CUDA kernel function named `matrixMul` for matrix multiplication.
+   - The `__global__` qualifier indicates that this function will be executed on the GPU.
+   - It takes pointers to integer arrays `a`, `b`, and `c`, along with integer dimensions `rowsA`, `colsA`, and `colsB` as parameters.
+
+4. `int main()`:
+   - This is the main function where the execution of the CUDA program begins.
+
+5. Matrix Dimensions:
+   - `rowsA`, `colsA`, `rowsB`, and `colsB` are initialized to specify the dimensions of matrices A and B for multiplication.
+
+6. Matrix Allocation and Initialization:
+   - Pointers `a`, `b`, and `c` are declared for host matrices A, B, and the result matrix C.
+   - Memory is allocated for host matrices using `malloc`.
+   - Host matrices A and B are initialized with values.
+
+7. Memory Allocation on the Device:
+   - Pointers `dev_a`, `dev_b`, and `dev_c` are declared for device matrices (allocated on the GPU).
+   - Memory is allocated on the device for device matrices using `cudaMalloc`.
+
+8. Data Transfer:
+   - Data from host matrices A and B is copied to device matrices `dev_a` and `dev_b` using `cudaMemcpy` with `cudaMemcpyHostToDevice` direction.
+
+9. Grid and Block Dimensions:
+   - Grid and block dimensions are defined using `dim3` to specify how CUDA threads are organized.
+   - Grid size is calculated based on matrix dimensions to ensure proper thread distribution.
+
+10. Kernel Launch:
+    - The CUDA kernel `matrixMul` is launched using `<<<gridSize, blockSize>>>` syntax, passing device matrices `dev_a`, `dev_b`, `dev_c`, and matrix dimensions.
+
+11. Copy Result from Device to Host:
+    - The result matrix `dev_c` is copied from the device to the host matrix `c` using `cudaMemcpy` with `cudaMemcpyDeviceToHost` direction.
+
+12. Print Result:
+    - The result matrix C is printed row by row using `printf` to display the matrix multiplication result.
+
+13. Memory Deallocation:
+    - Device memory for device matrices is freed using `cudaFree`.
+    - Host memory for host matrices is freed using `free`.
+
+14. `return 0;`:
+    - Indicates successful execution of the program and returns 0 to the operating system.
+
+
+
+Theory:
+
+CUDA:
+CUDA programming is especially well-suited to address problems that can be expressed as data- parallel
+computations. Any applications that process large data sets can use a data-parallel model to speed up the
+computations. Data-parallel processing maps data elements to parallel threads.
+
+The first step in designing a data parallel program is to partition data across threads, with each thread working on a
+portion of the data. The first step in designing a data parallel program is to partition data across threads, with each
+thread working on a portion of the data.
+CUDA Architecture:
+A heterogeneous application consists of two parts:
+ Host code
+ Device code
+
+Host code runs on CPUs and device code runs on GPUs. An application executing on a heterogeneous platform is
+typically initialized by the CPU. The CPU code is responsible for managing the environment, code, and data for the
+device before loading compute-intensive tasks on the device. With computational intensive applications, program
+sections often exhibit a rich amount of data parallelism. GPUs are used to accelerate the execution of this portion of
+data parallelism. When a hardware component that is physically separate from the CPU is used to accelerate
+computationally intensive sections of an application, it is referred to as a hardware accelerator. GPUs are arguably
+the most common example of a hardware accelerator.
+
+A typical processing flow of a CUDA program follows this pattern:
+1. Copy data from CPU memory to GPU memory.
+2. Invoke kernels to operate on the data stored in GPU memory.
+3. Copy data back from GPU memory to CPU memory 
+
+Organizing Threads:
+When a kernel function is launched from the host side, execution is moved to a device where a large number of
+threads are generated and each thread executes the statements specified by the
+kernel function.
+
+CUDA organizes grids and blocks in three dimensions. The dimensions of a grid and a block are specified by the
+following two built-in variables:
+ blockDim (block dimension, measured in threads)
+ gridDim (grid dimension, measured in blocks) 
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************

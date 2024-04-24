@@ -1,0 +1,1401 @@
+Note: Before running any code use this command:
+
+!pip install git+https://github.com/afnan47/cuda.git
+%load_ext nvcc_plugin
+
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+
+ASS 1 DFS-BFS
+
+%%writefile ass1.cu
+
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <omp.h>
+
+using namespace std;
+
+class Graph {
+    int V; // Number of vertices
+    vector<vector<int>> adj; // Adjacency list
+public:
+    Graph(int V) : V(V), adj(V) {}
+    // Add an edge to the graph
+    void addEdge(int v, int w) {
+        adj[v].push_back(w);
+    }
+    // Parallel Depth-First Search
+    void parallelDFS(int startVertex) {
+        vector<bool> visited(V, false);
+        double startTime = omp_get_wtime();
+        parallelDFSUtil(startVertex, visited);
+        double endTime = omp_get_wtime();
+        cout << "\nExecution Time (DFS): " << endTime - startTime << " seconds" << endl;
+    }
+    // Parallel DFS utility function
+    void parallelDFSUtil(int v, vector<bool>& visited) {
+        visited[v] = true;
+        cout << v << " ";
+        #pragma omp parallel for
+        for (int i = 0; i < adj[v].size(); ++i) {
+            int n = adj[v][i];
+            if (!visited[n])
+                parallelDFSUtil(n, visited);
+        }
+    }
+    // Parallel Breadth-First Search
+    void parallelBFS(int startVertex) {
+        vector<bool> visited(V, false);
+        queue<int> q;
+        double startTime = omp_get_wtime();
+        visited[startVertex] = true;
+        q.push(startVertex);
+        while (!q.empty()) {
+            int v = q.front();
+            q.pop();
+            cout << v << " ";
+            #pragma omp parallel for
+            for (int i = 0; i < adj[v].size(); ++i) {
+                int n = adj[v][i];
+                if (!visited[n]) {
+                    visited[n] = true;
+                    q.push(n);
+                }
+            }
+        }
+        double endTime = omp_get_wtime();
+        cout << "\nExecution Time (BFS): " << endTime - startTime << " seconds" << endl;
+    }
+};
+
+int main() {
+    // Create a graph
+    Graph g(7);
+    g.addEdge(0, 1);
+    g.addEdge(0, 2);
+    g.addEdge(1, 3);
+    g.addEdge(1, 4);
+    g.addEdge(2, 5);
+    g.addEdge(2, 6);
+    cout << "Depth-First Search (DFS): ";
+    g.parallelDFS(0);
+    cout << endl;
+    cout << "Breadth-First Search (BFS): ";
+    g.parallelBFS(0);
+    cout << endl;
+    return 0;
+}
+
+
+!nvcc -o ass1 ass1.cu -Xcompiler -fopenmp
+!./ass1
+
+output :
+Depth-First Search (DFS): 0 2 1 3 4 5 6 
+Execution Time (DFS): 0.00201439 seconds
+
+Breadth-First Search (BFS): 0 1 2 4 3 6 5 
+Execution Time (BFS): 8.4151e-05 seconds
+
+
+Code Explaination:
+
+Explanation
+#include directives:
+#include <iostream>: This includes the standard input/output stream library for handling input and output operations.
+#include <vector>: This includes the vector library for using vectors, which are dynamic arrays.
+#include <queue>: This includes the queue library for using queues.
+#include <omp.h>: This includes the OpenMP library, which is used for parallel programming.
+using namespace std;: This line allows the use of entities in the std namespace without explicitly qualifying them with std::.
+class Graph { ... };: This defines a class named Graph that represents a graph.
+int V;: This is a private member variable representing the number of vertices in the graph.
+vector<vector<int>> adj;: This is a private member variable representing the adjacency list of the graph.
+Graph(int V) : V(V), adj(V) {}: This is the constructor of the Graph class, which initializes the number of vertices V and the adjacency list adj.
+void addEdge(int v, int w) { ... }: This method adds an edge between vertices v and w in the graph's adjacency list.
+void parallelDFS(int startVertex) { ... }: This method performs parallel depth-first search (DFS) starting from the startVertex.
+void parallelDFSUtil(int v, vector<bool>& visited) { ... }: This is a utility function for parallel DFS.
+void parallelBFS(int startVertex) { ... }: This method performs parallel breadth-first search (BFS) starting from the startVertex.
+int main() { ... }: This is the main function where the program execution starts.
+Graph g(7);: This creates an instance of the Graph class with 7 vertices.
+g.addEdge(0, 1); ...: This adds edges to the graph to create a sample graph structure.
+cout << "Depth-First Search (DFS): "; g.parallelDFS(0);: This prints a message and then calls the parallelDFS function to perform parallel DFS from vertex 0.
+cout << "Breadth-First Search (BFS): "; g.parallelBFS(0);: This prints a message and then calls the parallelBFS function to perform parallel BFS from vertex 0.
+
+Compilation and Execution
+!nvcc -o ass1 ass1.cu -Xcompiler -fopenmp: This is a command to compile the CUDA C++ code ass1.cu with OpenMP support. -o ass1 specifies the output binary file name as ass1. -Xcompiler -fopenmp tells the compiler to use OpenMP.
+!./ass1: This command executes the compiled program ass1.
+This program demonstrates parallel Depth-First Search (DFS) and parallel Breadth-First Search (BFS) on a sample graph using CUDA C++ with OpenMP for parallelization.
+
+
+Theory:
+
+There are many ways to traverse graphs. BFS is the most commonly used
+approach.
+BFS is a traversing algorithm where you should start traversing from a selected node (source or starting node)
+and traverse the graph layer wise thus exploring the neighbor nodes (nodes which are directly connected to
+source node). You must then move towards the next-level neighbor nodes.
+As the name BFS suggests, you are required to traverse the graph breadthwise as follows:
+1. First move horizontally and visit all the nodes of the current layer
+2. Move to the next layer
+
+Parallel Breadth First Search
+1. To design and implement parallel breadth first search, you will need to divide the graph into
+smaller sub-graphs and assign each sub-graph to a different processor or thread.
+2. Each processor or thread will then perform a breadth first search on its assigned sub-graph
+concurrently with the other processors or threads.
+3. Two methods: Vertex byVertex OR Level By Level
+
+Parallel Depth First Search:
+• Different subtrees can be searched concurrently.
+• Subtrees can be very different in size.
+• Estimate the size of a subtree rooted at a node.
+• Dynamic load balancing is required.
+
+OpenMP Section Compiler Directive:
+A parallel loop is an example of independent work units that are numbered. If you have a pre- determined
+number of independent work units, the sections is more appropriate. In a sections construct can be any
+number of section constructs. These need to be independent, and they can be execute by any available thread
+in the current team, including having multiple sections done by the same thread.
+The sections construct is a non-iterative work sharing construct that contains a set of structured blocks that
+are to be distributed among and executed by the threads in a team. Each structured block is executed once by
+one of the threads in the team in the context of its implicit task
+
+
+advantages of openmp-
+
+It allows for efficient utilization of available hardware resources, leading to faster execution times for parallelizable tasks.
+
+This incremental approach enables developers to focus on optimizing critical sections of their code for parallel execution while leaving other parts sequential.
+
+
+
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+BFS(Seperate)-
+
+#include <iostream>
+#include <vector>
+#include <queue>
+
+using namespace std;
+
+class Graph {
+    int V; // Number of vertices
+    vector<vector<int>> adj; // Adjacency list
+public:
+    Graph(int V) : V(V), adj(V) {}
+    // Add an edge to the graph
+    void addEdge(int v, int w) {
+        adj[v].push_back(w);
+    }
+    // Breadth-First Search
+    void BFS(int startVertex) {
+        vector<bool> visited(V, false);
+        queue<int> q;
+        q.push(startVertex);
+        visited[startVertex] = true;
+
+        cout << "Breadth-First Search (BFS): ";
+        while (!q.empty()) {
+            int v = q.front();
+            q.pop();
+            cout << v << " ";
+            for (int i = 0; i < adj[v].size(); ++i) {
+                int n = adj[v][i];
+                if (!visited[n]) {
+                    visited[n] = true;
+                    q.push(n);
+                }
+            }
+        }
+        cout << endl;
+    }
+};
+
+int main() {
+    // Create a graph
+    Graph g(7);
+    g.addEdge(0, 1);
+    g.addEdge(0, 2);
+    g.addEdge(1, 3);
+    g.addEdge(1, 4);
+    g.addEdge(2, 5);
+    g.addEdge(2, 6);
+
+    // Perform BFS
+    g.BFS(0);
+
+    return 0;
+}
+
+
+Code Explanation
+Let's go through the provided C++ code for Breadth-First Search (BFS) in a graph:
+
+Graph Class
+class Graph { ... };: Defines a Graph class for representing an undirected graph.
+int V;: Private member variable representing the number of vertices.
+vector<vector<int>> adj;: Private member variable representing the adjacency list. It's a vector of vectors, where adj[v] contains all the vertices adjacent to vertex v.
+Graph Constructor
+Graph(int V) : V(V), adj(V) {}: Constructor for the Graph class.
+Initializes the number of vertices V.
+Initializes the adjacency list adj with size V.
+addEdge Function
+void addEdge(int v, int w) { ... }: Member function to add an edge between vertices v and w.
+Pushes vertex w to the adjacency list of vertex v.
+BFS Function
+void BFS(int startVertex) { ... }: Member function to perform Breadth-First Search from a given startVertex.
+Initializes a boolean vector visited of size V to keep track of visited vertices, initially set to false.
+Creates a queue q for BFS traversal and pushes the startVertex into the queue.
+Marks startVertex as visited.
+Prints the message "Breadth-First Search (BFS): ".
+While the queue is not empty:
+Dequeues a vertex v from the front of the queue.
+Prints the vertex v.
+Iterates through all adjacent vertices of v:
+If an adjacent vertex n is not visited:
+Marks n as visited.
+Enqueues n into the queue.
+After the traversal, prints a newline.
+Main Function
+int main() { ... }: Entry point of the program.
+Creates an instance g of the Graph class with 7 vertices.
+Adds edges to create a graph structure:
+Vertex 0 is connected to vertices 1 and 2.
+Vertex 1 is connected to vertices 3 and 4.
+Vertex 2 is connected to vertices 5 and 6.
+Calls the BFS function on vertex 0 to perform BFS traversal from vertex 0.
+Output
+The output of this program will be:
+
+sql
+Copy code
+Breadth-First Search (BFS): 0 1 2 3 4 5 6
+This output represents the order in which vertices are visited during BFS traversal starting from vertex 0.
+
+Execution
+!nvcc -o bfs bfs.cpp: Compiles the code using nvcc.
+!./bfs: Executes the compiled program.
+This C++ program demonstrates the Breadth-First Search (BFS) algorithm on a graph. It creates a graph with 7 vertices and performs BFS traversal from vertex 0. The result shows the sequence of visited vertices in BFS order.
+
+----------------------------------------------------------------------------------------------------------
+
+DFS(Separate)-
+
+#include <iostream>
+#include <vector>
+#include <stack>
+
+using namespace std;
+
+class Graph {
+    int V; // Number of vertices
+    vector<vector<int>> adj; // Adjacency list
+public:
+    Graph(int V) : V(V), adj(V) {}
+    // Add an edge to the graph
+    void addEdge(int v, int w) {
+        adj[v].push_back(w);
+    }
+    // Depth-First Search
+    void DFS(int startVertex) {
+        vector<bool> visited(V, false);
+        stack<int> stk;
+        stk.push(startVertex);
+
+        cout << "Depth-First Search (DFS): ";
+        while (!stk.empty()) {
+            int v = stk.top();
+            stk.pop();
+            if (!visited[v]) {
+                visited[v] = true;
+                cout << v << " ";
+                for (int i = adj[v].size() - 1; i >= 0; --i) {
+                    int n = adj[v][i];
+                    if (!visited[n]) {
+                        stk.push(n);
+                    }
+                }
+            }
+        }
+        cout << endl;
+    }
+};
+
+int main() {
+    // Create a graph
+    Graph g(7);
+    g.addEdge(0, 1);
+    g.addEdge(0, 2);
+    g.addEdge(1, 3);
+    g.addEdge(1, 4);
+    g.addEdge(2, 5);
+    g.addEdge(2, 6);
+
+    // Perform DFS
+    g.DFS(0);
+
+    return 0;
+}
+
+Code Explanation
+Let's break down the provided C++ code for Depth-First Search (DFS) in a graph:
+
+Graph Class
+class Graph { ... };: Defines a Graph class for representing an undirected graph.
+int V;: Private member variable representing the number of vertices.
+vector<vector<int>> adj;: Private member variable representing the adjacency list. It's a vector of vectors, where adj[v] contains all the vertices adjacent to vertex v.
+Graph Constructor
+Graph(int V) : V(V), adj(V) {}: Constructor for the Graph class.
+Initializes the number of vertices V.
+Initializes the adjacency list adj with size V.
+addEdge Function
+void addEdge(int v, int w) { ... }: Member function to add an edge between vertices v and w.
+Pushes vertex w to the adjacency list of vertex v.
+DFS Function
+void DFS(int startVertex) { ... }: Member function to perform Depth-First Search from a given startVertex.
+Initializes a boolean vector visited of size V to keep track of visited vertices, initially set to false.
+Creates a stack stk for DFS traversal and pushes the startVertex into the stack.
+Marks startVertex as visited.
+Prints the message "Depth-First Search (DFS): ".
+While the stack is not empty:
+Peeks the top vertex v from the stack.
+If v is not visited:
+Marks v as visited.
+Prints v.
+Iterates through all adjacent vertices of v (starting from the end of the adjacency list):
+If an adjacent vertex n is not visited:
+Pushes n into the stack.
+After the traversal, prints a newline.
+Main Function
+int main() { ... }: Entry point of the program.
+Creates an instance g of the Graph class with 7 vertices.
+Adds edges to create a graph structure:
+Vertex 0 is connected to vertices 1 and 2.
+Vertex 1 is connected to vertices 3 and 4.
+Vertex 2 is connected to vertices 5 and 6.
+Calls the DFS function on vertex 0 to perform DFS traversal from vertex 0.
+Output
+The output of this program will be:
+
+mathematica
+Copy code
+Depth-First Search (DFS): 0 2 6 5 1 4 3
+This output represents the order in which vertices are visited during DFS traversal starting from vertex 0.
+
+Execution
+!nvcc -o dfs dfs.cpp: Compiles the code using nvcc.
+!./dfs: Executes the compiled program.
+This C++ program demonstrates the Depth-First Search (DFS) algorithm on a graph. It creates a graph with 7 vertices and performs DFS traversal from vertex 0. The result shows the sequence of visited vertices in DFS order.
+
+
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+
+
+ASS 2 Parallel Bubble
+
+# Assignment 2 parallel bubble sort
+
+%%writefile ass2parallelbubble.cu
+
+#include<iostream>
+#include<omp.h>
+using namespace std;
+void bubble(int array[], int n){
+for (int i = 0; i < n - 1; i++){
+for (int j = 0; j < n - i - 1; j++){
+if (array[j] > array[j + 1]) swap(array[j], array[j + 1]);
+}
+}
+}
+void pBubble(int array[], int n){
+//Sort odd indexed numbers
+for(int i = 0; i < n; ++i){
+#pragma omp for
+for (int j = 1; j < n; j += 2){
+if (array[j] < array[j-1])
+{
+swap(array[j], array[j - 1]);
+}
+}
+// Synchronize
+#pragma omp barrier
+//Sort even indexed numbers
+#pragma omp for
+for (int j = 2; j < n; j += 2){
+if (array[j] < array[j-1])
+{
+swap(array[j], array[j - 1]);
+}
+}
+}
+}
+void printArray(int arr[], int n){
+for(int i = 0; i < n; i++) cout << arr[i] << " ";
+cout << "\n";
+}
+int main(){
+// Set up variables
+int n = 10;
+int arr[n];
+int brr[n];
+double start_time, end_time;
+// Create an array with numbers starting from n to 1
+for(int i = 0, j = n; i < n; i++, j--) arr[i] = j;
+// Sequential time
+start_time = omp_get_wtime();
+bubble(arr, n);
+end_time = omp_get_wtime();
+cout << "Sequential Bubble Sort took : " << end_time - start_time << " seconds.\n";
+printArray(arr, n);
+// Reset the array
+for(int i = 0, j = n; i < n; i++, j--) arr[i] = j;
+// Parallel time
+start_time = omp_get_wtime();
+pBubble(arr, n);
+end_time = omp_get_wtime();
+cout << "Parallel Bubble Sort took : " << end_time - start_time << " seconds.\n";
+printArray(arr, n);
+}
+
+!nvcc -o ass2parallelbubble ass2parallelbubble.cu -Xcompiler -fopenmp
+!./ass2parallelbubble
+
+output :
+Sequential Bubble Sort took : 9.63e-07 seconds.
+1 2 3 4 5 6 7 8 9 10 
+Parallel Bubble Sort took : 2.513e-06 seconds.
+1 2 3 4 5 6 7 8 9 10 
+
+Code Explaination:
+
+Explanation
+#include directives:
+#include <iostream>: This includes the standard input/output stream library for handling input and output operations.
+#include <omp.h>: This includes the OpenMP library, which is used for parallel programming.
+using namespace std;: This line allows the use of entities in the std namespace without explicitly qualifying them with std::.
+void bubble(int array[], int n) { ... }: This function implements the standard bubble sort algorithm. It iterates over the array, comparing adjacent elements and swapping them if they are in the wrong order.
+void pBubble(int array[], int n) { ... }: This function implements a parallel version of bubble sort. It sorts odd indexed numbers and even indexed numbers separately using OpenMP parallel directives (#pragma omp for).
+void printArray(int arr[], int n) { ... }: This function is used to print the elements of an array.
+int main() { ... }: This is the main function where the program execution starts.
+int n = 10;: This sets the size of the array to 10.
+int arr[n]; int brr[n];: These are arrays to store numbers for sorting.
+double start_time, end_time;: These variables are used to measure the execution time of sorting algorithms.
+Array Initialization:
+for (int i = 0, j = n; i < n; i++, j--) arr[i] = j;: This loop initializes the arr array with numbers from n to 1.
+Sequential Bubble Sort:
+start_time = omp_get_wtime();: This records the starting time of sequential bubble sort.
+bubble(arr, n);: This calls the sequential bubble sort function.
+end_time = omp_get_wtime();: This records the ending time of sequential bubble sort.
+cout << "Sequential Bubble Sort took : " << end_time - start_time << " seconds.\n";: This prints the time taken for sequential bubble sort.
+printArray(arr, n);: This prints the sorted array after sequential bubble sort.
+Reset Array:
+for (int i = 0, j = n; i < n; i++, j--) arr[i] = j;: This loop resets the arr array with numbers from n to 1 for parallel sorting.
+Parallel Bubble Sort:
+start_time = omp_get_wtime();: This records the starting time of parallel bubble sort.
+pBubble(arr, n);: This calls the parallel bubble sort function.
+end_time = omp_get_wtime();: This records the ending time of parallel bubble sort.
+cout << "Parallel Bubble Sort took : " << end_time - start_time << " seconds.\n";: This prints the time taken for parallel bubble sort.
+printArray(arr, n);: This prints the sorted array after parallel bubble sort.
+Compilation and Execution
+!nvcc -o ass2parallelbubble ass2parallelbubble.cu -Xcompiler -fopenmp: This compiles the CUDA C++ code ass2parallelbubble.cu with OpenMP support.
+!./ass2parallelbubble: This executes the compiled program ass2parallelbubble.
+This program demonstrates the comparison between sequential and parallel implementations of bubble sort using CUDA C++ and OpenMP. It creates an array, sorts it sequentially, then resets the array and sorts it in parallel. Finally, it prints the execution times and sorted arrays for comparison.
+
+----------------------------------------------------------------------------------------------------------
+
+ASS 2 MERGE
+
+%%writefile ass2parallelmergesort.cu
+
+#include <iostream>
+#include <omp.h>
+using namespace std;
+
+void merge(int arr[], int low, int mid, int high) {
+    // Create arrays of left and right partitions
+    int n1 = mid - low + 1;
+    int n2 = high - mid;
+    int left[n1];
+    int right[n2];
+
+    // Copy all left elements
+    for (int i = 0; i < n1; i++)
+        left[i] = arr[low + i];
+
+    // Copy all right elements
+    for (int j = 0; j < n2; j++)
+        right[j] = arr[mid + 1 + j];
+
+    // Compare and place elements
+    int i = 0, j = 0, k = low;
+    while (i < n1 && j < n2) {
+        if (left[i] <= right[j]) {
+            arr[k] = left[i];
+            i++;
+        } else {
+            arr[k] = right[j];
+            j++;
+        }
+        k++;
+    }
+
+    // If any elements are left out
+    while (i < n1) {
+        arr[k] = left[i];
+        i++;
+        k++;
+    }
+    while (j < n2) {
+        arr[k] = right[j];
+        j++;
+        k++;
+    }
+}
+
+void parallelMergeSort(int arr[], int low, int high) {
+    if (low < high) {
+        int mid = (low + high) / 2;
+#pragma omp parallel sections
+        {
+#pragma omp section
+            {
+                parallelMergeSort(arr, low, mid);
+            }
+#pragma omp section
+            {
+                parallelMergeSort(arr, mid + 1, high);
+            }
+        }
+        merge(arr, low, mid, high);
+    }
+}
+
+void mergeSort(int arr[], int low, int high) {
+    if (low < high) {
+        int mid = (low + high) / 2;
+        mergeSort(arr, low, mid);
+        mergeSort(arr, mid + 1, high);
+        merge(arr, low, mid, high);
+    }
+}
+
+int main() {
+    int n = 1000;
+    int arr[n];
+    double start_time, end_time;
+
+    // Create an array with numbers starting from n to 1.
+    for (int i = 0, j = n; i < n; i++, j--)
+        arr[i] = j;
+
+    // Measure Sequential Time
+    start_time = omp_get_wtime();
+    mergeSort(arr, 0, n - 1);
+    end_time = omp_get_wtime();
+    cout << "Time taken by sequential algorithm: " << end_time - start_time << " seconds\n";
+
+    // Reset the array
+    for (int i = 0, j = n; i < n; i++, j--)
+        arr[i] = j;
+
+    // Measure Parallel time
+    start_time = omp_get_wtime();
+    parallelMergeSort(arr, 0, n - 1);
+    end_time = omp_get_wtime();
+    cout << "Time taken by parallel algorithm: " << end_time - start_time << " seconds";
+
+    return 0;
+}
+
+!nvcc -o ass2parallelmergesort ass2parallelmergesort.cu -Xcompiler -fopenmp
+!./ass2parallelmergesort
+
+Output :
+
+Time taken by sequential algorithm: 0.000125365 seconds
+Time taken by parallel algorithm: 0.00284824 seconds
+
+
+Code Explaination:
+
+Explanation
+#include directives:
+#include <iostream>: This includes the standard input/output stream library for handling input and output operations.
+#include <omp.h>: This includes the OpenMP library, which is used for parallel programming.
+using namespace std;: This line allows the use of entities in the std namespace without explicitly qualifying them with std::.
+void merge(int arr[], int low, int mid, int high) { ... }: This function merges two sorted subarrays into a single sorted array.
+int n1 = mid - low + 1;: Calculate the size of the left subarray.
+int n2 = high - mid;: Calculate the size of the right subarray.
+int left[n1]; int right[n2];: Create temporary arrays to store left and right subarrays.
+for (int i = 0; i < n1; i++) left[i] = arr[low + i];: Copy elements to the left subarray.
+for (int j = 0; j < n2; j++) right[j] = arr[mid + 1 + j];: Copy elements to the right subarray.
+The while loop merges the left and right subarrays into the original array arr.
+void parallelMergeSort(int arr[], int low, int high) { ... }: This function implements parallel merge sort using OpenMP.
+It divides the array into two halves, sorts them in parallel, and then merges them.
+The #pragma omp parallel sections directive is used to divide the work into two sections that can be executed in parallel.
+Each section calls parallelMergeSort on the left and right halves of the array.
+void mergeSort(int arr[], int low, int high) { ... }: This function implements the standard merge sort algorithm.
+It recursively divides the array into halves until each subarray has one element, then merges them back together.
+int main() { ... }: This is the main function where the program execution starts.
+int n = 1000;: This sets the size of the array to 1000.
+int arr[n];: This creates an array to store numbers for sorting.
+double start_time, end_time;: These variables are used to measure the execution time of sorting algorithms.
+Array Initialization:
+for (int i = 0, j = n; i < n; i++, j--) arr[i] = j;: This loop initializes the arr array with numbers from n to 1.
+Sequential Merge Sort:
+start_time = omp_get_wtime();: This records the starting time of sequential merge sort.
+mergeSort(arr, 0, n - 1);: This calls the sequential merge sort function.
+end_time = omp_get_wtime();: This records the ending time of sequential merge sort.
+cout << "Time taken by sequential algorithm: " << end_time - start_time << " seconds\n";: This prints the time taken for sequential merge sort.
+Reset Array:
+for (int i = 0, j = n; i < n; i++, j--) arr[i] = j;: This loop resets the arr array with numbers from n to 1 for parallel sorting.
+Parallel Merge Sort:
+start_time = omp_get_wtime();: This records the starting time of parallel merge sort.
+parallelMergeSort(arr, 0, n - 1);: This calls the parallel merge sort function.
+end_time = omp_get_wtime();: This records the ending time of parallel merge sort.
+`cout << "Time taken by parallel algorithm: " << end_time
+
+----------------------------------------------------------------------------------------------------------
+
+
+ASS 2 BUBBLE AND MERGE COMBINE
+# ass2 combine merge and bubble
+%%writefile ass2.cu
+
+
+
+#include <iostream>
+#include <ctime>
+#include <cstdlib>
+#include <omp.h>
+
+using namespace std;
+
+void bubbleSort(int arr[], int n) {
+    for (int i = 0; i < n - 1; ++i) {
+        for (int j = 0; j < n - i - 1; ++j) {
+            if (arr[j] > arr[j + 1]) {
+                swap(arr[j], arr[j + 1]);
+            }
+        }
+    }
+}
+
+void merge(int arr[], int l, int m, int r) {
+    int i, j, k;
+    int n1 = m - l + 1;
+    int n2 = r - m;
+
+    int *L = new int[n1];
+    int *R = new int[n2];
+
+    for (i = 0; i < n1; ++i) {
+        L[i] = arr[l + i];
+    }
+    for (j = 0; j < n2; ++j) {
+        R[j] = arr[m + 1 + j];
+    }
+
+    i = 0;
+    j = 0;
+    k = l;
+
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) {
+            arr[k] = L[i];
+            ++i;
+        } else {
+            arr[k] = R[j];
+            ++j;
+        }
+        ++k;
+    }
+
+    while (i < n1) {
+        arr[k] = L[i];
+        ++i;
+        ++k;
+    }
+
+    while (j < n2) {
+        arr[k] = R[j];
+        ++j;
+        ++k;
+    }
+
+    delete[] L;
+    delete[] R;
+}
+
+void mergeSort(int arr[], int l, int r) {
+    if (l < r) {
+        int m = l + (r - l) / 2;
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            {
+                mergeSort(arr, l, m);
+            }
+            #pragma omp section
+            {
+                mergeSort(arr, m + 1, r);
+            }
+        }
+
+        merge(arr, l, m, r);
+    }
+}
+
+void printArray(int arr[], int size) {
+    for (int i = 0; i < size; ++i) {
+        cout << arr[i] << " ";
+    }
+    cout << endl;
+}
+
+int main() {
+    int n;
+    cout << "Enter the size of the array: ";
+    cin >> n;
+
+    int *arr = new int[n];
+    srand(time(0));
+    for (int i = 0; i < n; ++i) {
+        arr[i] = rand() % 100;
+    }
+
+    // Sequential Bubble Sort
+    clock_t start = clock();
+    bubbleSort(arr, n);
+    clock_t end = clock();
+    double sequentialBubbleTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Parallel Bubble Sort
+    start = clock();
+    #pragma omp parallel
+    {
+        bubbleSort(arr, n);
+    }
+    end = clock();
+    double parallelBubbleTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Merge Sort
+    start = clock();
+    mergeSort(arr, 0, n - 1);
+    end = clock();
+    double sequentialMergeTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Parallel Merge Sort
+    start = clock();
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            mergeSort(arr, 0, n - 1);
+        }
+    }
+    end = clock();
+    double parallelMergeTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Performance measurement
+    cout << "Sequential Bubble Sort Time: " << sequentialBubbleTime << " seconds" << endl;
+    cout << "Parallel Bubble Sort Time: " << parallelBubbleTime << " seconds" << endl;
+    cout << "Sequential Merge Sort Time: " << sequentialMergeTime << " seconds" << endl;
+    cout << "Parallel Merge Sort Time: " << parallelMergeTime << " seconds" << endl;
+
+    delete[] arr;
+
+    return 0;
+}
+
+!nvcc -o ass2 ass2.cu -Xcompiler -fopenmp
+!./ass2
+
+Output :
+Enter the size of the array: 5
+Sequential Bubble Sort Time: 2e-06 seconds
+Parallel Bubble Sort Time: 0.000215 seconds
+Sequential Merge Sort Time: 5.4e-05 seconds
+Parallel Merge Sort Time: 1.1e-05 seconds
+
+Code Explaination:
+
+Explanation
+#include directives:
+#include <iostream>: This includes the standard input/output stream library for handling input and output operations.
+#include <ctime> and #include <cstdlib>: These include libraries for handling time and random number generation.
+#include <omp.h>: This includes the OpenMP library, which is used for parallel programming.
+using namespace std;: This line allows the use of entities in the std namespace without explicitly qualifying them with std::.
+Function Prototypes:
+void bubbleSort(int arr[], int n);: Prototype for the Bubble Sort algorithm.
+void merge(int arr[], int l, int m, int r);: Prototype for the Merge function used in Merge Sort.
+void mergeSort(int arr[], int l, int r);: Prototype for the Merge Sort algorithm.
+void printArray(int arr[], int size);: Prototype for a function to print an array.
+Bubble Sort:
+void bubbleSort(int arr[], int n) { ... }: Implementation of the Bubble Sort algorithm.
+It sorts the array arr of size n in ascending order.
+Inner and outer loops are used for comparing and swapping elements.
+Merge Sort:
+void merge(int arr[], int l, int m, int r) { ... }: Merge function for Merge Sort.
+It merges two subarrays: one from l to m and another from m+1 to r.
+void mergeSort(int arr[], int l, int r) { ... }: Recursive Merge Sort algorithm.
+It divides the array into halves until each subarray has one element, then merges them.
+Parallel sections are used to parallelize the recursive calls.
+int main() { ... }: Main function where the program execution starts.
+int n;: Variable to store the size of the array.
+cout << "Enter the size of the array: "; cin >> n;: Asks the user to enter the size of the array.
+Array Initialization:
+int *arr = new int[n];: Creates an array arr of size n.
+srand(time(0));: Seeds the random number generator.
+Generates random numbers between 0 and 99 and stores them in the array arr.
+Sorting Algorithms Performance Measurement:
+Sequential Bubble Sort:
+Measures the time taken by the sequential Bubble Sort algorithm.
+Records the start time using clock(), calls bubbleSort, and records the end time.
+Calculates the time taken (sequentialBubbleTime) and prints it.
+Parallel Bubble Sort:
+Measures the time taken by the parallel Bubble Sort algorithm.
+Uses #pragma omp parallel to parallelize the sorting.
+Records the start and end time, calculates parallelBubbleTime, and prints it.
+Sequential Merge Sort:
+Measures the time taken by the sequential Merge Sort algorithm.
+Records the start time, calls mergeSort, and records the end time.
+Calculates sequentialMergeTime and prints it.
+Parallel Merge Sort:
+Measures the time taken by the parallel Merge Sort algorithm.
+Uses #pragma omp parallel with #pragma omp single to parallelize the sorting.
+Records the start and end time, calculates parallelMergeTime, and prints it.
+delete[] arr;: Frees the dynamically allocated memory for the array.
+Performance Measurement Output:
+Prints the time taken by each sorting algorithm: Sequential Bubble Sort, Parallel Bubble Sort, Sequential Merge Sort, and Parallel Merge Sort.
+Compilation and Execution
+!nvcc -o ass2 ass2.cu -Xcompiler -fopenmp: Compiles the CUDA C++ code using nvcc with OpenMP support.
+!./ass2: Executes the compiled program to measure the performance of sequential and parallel sorting algorithms.
+This program allows the user to enter the size of the array, generates random numbers, sorts the array using both sequential and parallel versions of Bubble Sort and Merge Sort algorithms, and then prints the time taken by each algorithm for comparison. The parallelization is achieved using OpenMP directives.
+
+
+
+Theory:
+
+Parallel Sorting:
+A sequential sorting algorithm may not be efficient enough when we have to sort a huge volume of data.
+Therefore, parallel algorithms are used in sorting.
+Design methodology:
+Based on an existing sequential sort algorithm
+ Try to utilize all resources available
+ Possible to turn a poor sequential algorithm into a reasonable parallel algorithm
+
+Bubble Sort
+The idea of bubble sort is to compare two adjacent elements. If they are not in the right order, switch them.
+Do this comparing and switching (if necessary) until the end of the array is reached.Repeat this process from
+the beginning of the array n times. Average performance is O(n2)
+
+Algorithm for Parallel Bubble Sort
+1. For k = 0 to n-2
+2. If k is even then
+3. for i = 0 to (n/2)-1 do in parallel
+4. If A[2i] > A[2i+1] then
+5. Exchange A[2i] ↔ A[2i+1]
+6. Else
+7. for i = 0 to (n/2)-2 do in parallel8. If
+A[2i+1] > A[2i+2] then
+9. Exchange A[2i+1] ↔ A[2i+2]
+10. Next k
+
+Merge Sort-
+Merge Sort, on the other hand, takes a divide-and-conquer approach to sorting; recursively breaking the input array down until we have sorted tuple-sized subarrays that we can then merge back together at the end.
+Time Complexity-Onlog(n)
+
+Algorithm for Parallel Merge Sort
+1. Procedure parallelMergeSort
+2. Begin
+3. Create processors Pi where i = 1 to n
+4. if i > 0 then recieve size and parent from the root
+5. recieve the list, size and parent from the root
+6. endif
+7. midvalue= listsize/2
+8. if both children is present in the tree then
+9. send midvalue, first child
+10. send listsize-mid,second child
+11. send list, midvalue, first child
+12. send list from midvalue, listsize-midvalue, second child
+13. call mergelist(list,0,midvalue,list, midvalue+1,listsize,temp,0,listsize)
+14. store temp in another array list2
+15. else
+16. call parallelMergeSort(list,0,listsize)
+17. endif
+18. if i >0 then
+19. send list, listsize,parent
+20. endif
+21. end
+
+ALGORITHM ANALYSIS
+1. Time Complexity Of parallel Merge Sort and parallel Bubble sort in best case is( when all datais already in
+sorted form):O(n)
+2. Time ComplexityOf parallel Merge Sort and parallel Bubble sort in worst case is: O(n logn)
+3. Time Complexity Of parallel Merge Sort and parallel Bubble sort in average case is: O(nlogn)
+
+
+
+
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+
+ASS 3 MIN MAC
+%%writefile ass3.cu
+
+#include <iostream>
+
+__global__ void minKernel(int *arr, int *minval, int n) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tid < n) atomicMin(minval, arr[tid]);
+}
+
+__global__ void maxKernel(int *arr, int *maxval, int n) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tid < n) atomicMax(maxval, arr[tid]);
+}
+
+__global__ void sumKernel(int *arr, int *sum, int n) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tid < n) atomicAdd(sum, arr[tid]);
+}
+
+int minval(int arr[], int n) {
+    int *d_arr, *d_minval;
+    cudaMalloc(&d_arr, n * sizeof(int));
+    cudaMalloc(&d_minval, sizeof(int));
+    cudaMemcpy(d_arr, arr, n * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_minval, &arr[0], sizeof(int), cudaMemcpyHostToDevice);
+
+    minKernel<<<(n + 255) / 256, 256>>>(d_arr, d_minval, n);
+
+    int minval;
+    cudaMemcpy(&minval, d_minval, sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(d_arr);
+    cudaFree(d_minval);
+
+    return minval;
+}
+
+int maxval(int arr[], int n) {
+    int *d_arr, *d_maxval;
+    cudaMalloc(&d_arr, n * sizeof(int));
+    cudaMalloc(&d_maxval, sizeof(int));
+    cudaMemcpy(d_arr, arr, n * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_maxval, &arr[0], sizeof(int), cudaMemcpyHostToDevice);
+
+    maxKernel<<<(n + 255) / 256, 256>>>(d_arr, d_maxval, n);
+
+    int maxval;
+    cudaMemcpy(&maxval, d_maxval, sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(d_arr);
+    cudaFree(d_maxval);
+
+    return maxval;
+}
+
+int sum(int arr[], int n) {
+    int *d_arr, *d_sum;
+    cudaMalloc(&d_arr, n * sizeof(int));
+    cudaMalloc(&d_sum, sizeof(int));
+    cudaMemcpy(d_arr, arr, n * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_sum, &arr[0], sizeof(int), cudaMemcpyHostToDevice);
+
+    sumKernel<<<(n + 255) / 256, 256>>>(d_arr, d_sum, n);
+
+    int sum;
+    cudaMemcpy(&sum, d_sum, sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(d_arr);
+    cudaFree(d_sum);
+
+    return sum;
+}
+
+int average(int arr[], int n) {
+    return (double)sum(arr, n) / n;
+}
+
+int main() {
+    int n = 5;
+    int arr[] = {1, 2, 3, 4, 5};
+
+    std::cout << "The minimum value is: " << minval(arr, n) << '\n';
+    std::cout << "The maximum value is: " << maxval(arr, n) << '\n';
+    std::cout << "The summation is: " << sum(arr, n) << '\n';
+    std::cout << "The average is: " << average(arr, n) << '\n';
+
+    return 0;
+}
+
+!nvcc -o ass3 ass3.cu -Xcompiler -fopenmp
+!./ass3
+
+Output :
+The minimum value is: 1
+The maximum value is: 5
+The summation is: 16
+The average is: 3
+
+Code Explaination:
+
+Explanation
+__global__ Functions (Kernels):
+minKernel(int *arr, int *minval, int n): Kernel to find the minimum value in an array.
+Each thread calculates the minimum value within its block, and then atomicMin is used to find the global minimum.
+maxKernel(int *arr, int *maxval, int n): Kernel to find the maximum value in an array.
+Similar to minKernel, but it uses atomicMax to find the global maximum.
+sumKernel(int *arr, int *sum, int n): Kernel to find the sum of elements in an array.
+Each thread calculates the sum within its block, and then atomicAdd is used to find the global sum.
+minval, maxval, sum Functions:
+int minval(int arr[], int n) { ... }: Finds the minimum value in the array.
+Allocates memory on the GPU (cudaMalloc), copies array arr to GPU (cudaMemcpy), and launches minKernel.
+Copies the result back from GPU to CPU (cudaMemcpy) and frees GPU memory.
+int maxval(int arr[], int n) { ... }: Finds the maximum value in the array (similar to minval).
+int sum(int arr[], int n) { ... }: Finds the sum of elements in the array (similar to minval).
+average Function:
+int average(int arr[], int n) { ... }: Calculates the average of elements in the array.
+Uses the sum function to find the sum of elements and divides by the number of elements n.
+int main() { ... }:
+Initializes an array arr with values {1, 2, 3, 4, 5} and sets n to 5.
+Calls the functions minval, maxval, sum, and average with arr and n as arguments.
+Prints the results:
+The minimum value in the array.
+The maximum value in the array.
+The sum of all elements in the array.
+The average of all elements in the array.
+Compilation and Execution
+!nvcc -o ass3 ass3.cu -Xcompiler -fopenmp: Compiles the CUDA C++ code using nvcc with OpenMP support.
+!./ass3: Executes the compiled program to find and print the minimum, maximum, sum, and average of the array {1, 2, 3, 4, 5}.
+This program demonstrates how to use CUDA to perform basic array operations (finding minimum, maximum, sum, and average) on the GPU. It uses CUDA kernels to parallelize the calculations and provides the results using host code. The results are then printed to the console.
+
+
+
+Theory:
+
+OpenMP:
+OpenMP is a set of C/C++ pragmas which provide the programmer a high-level front-end interface which
+get translated as calls to threads. The key phrase here is "higher-level"; the goal is to better enable the
+programmer to "think parallel" alleviating him/her of the burden and distraction of dealing with setting up
+and coordinating threads. For example, the OpenMP directive. 
+
+Parallel reduction:
+
+Parallel reduction is a technique used in parallel programming to efficiently combine a collection of elements into a single value. It leverages multiple processors or cores to perform calculations simultaneously, speeding up the process compared to traditional serial reduction on a single core.
+
+Here's how it works:
+
+Reduction Operator: You define a function (the reduction operator) that takes two elements and combines them into a single value. This function is associative, meaning the order in which elements are combined doesn't affect the final result (a + b = b + a). Common examples include addition, finding the minimum or maximum value, etc.
+
+Divide and Conquer: The data is divided among multiple processors or cores. Each core performs the reduction operation on its assigned portion of the data independently.
+
+Merge and Reduce: The partial results from each core are then progressively merged and reduced further using the same operator. This often involves a series of synchronization steps between cores to ensure data consistency.
+
+Final Result:  The final reduction step combines the remaining partial results into a single value, which is the overall result for the entire data collection.
+
+Benefits of Parallel Reduction:
+
+Faster Processing: By distributing the workload across multiple cores, parallel reduction significantly reduces the processing time for large datasets.
+
+
+----------------------------------------------------------------------------------------------------------
+**********************************************************************************************************
+
+
+ASS 4 Vector Addition
+# ass4 addition of two large vector
+%%writefile ass4twolargevector.cu
+
+
+#include <iostream>
+using namespace std;
+
+__global__ void add(int* A, int* B, int* C, int size) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < size) {
+        C[tid] = A[tid] + B[tid];
+    }
+}
+
+void initialize(int* vector, int size) {
+    for (int i = 0; i < size; i++) {
+        vector[i] = rand() % 10;
+    }
+}
+
+void print(int* vector, int size) {
+    for (int i = 0; i < size; i++) {
+        cout << vector[i] << " ";
+    }
+    cout << endl;
+}
+
+int main() {
+    int N = 4;
+    int* A, * B, * C;
+    int vectorSize = N;
+    size_t vectorBytes = vectorSize * sizeof(int);
+
+    A = new int[vectorSize];
+    B = new int[vectorSize];
+    C = new int[vectorSize];
+
+    initialize(A, vectorSize);
+    initialize(B, vectorSize);
+
+    cout << "Vector A: ";
+    print(A, N);
+    cout << "Vector B: ";
+    print(B, N);
+
+    int* X, * Y, * Z;
+    cudaMalloc(&X, vectorBytes);
+    cudaMalloc(&Y, vectorBytes);
+    cudaMalloc(&Z, vectorBytes);
+
+    cudaMemcpy(X, A, vectorBytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(Y, B, vectorBytes, cudaMemcpyHostToDevice);
+
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
+    add<<<blocksPerGrid, threadsPerBlock>>>(X, Y, Z, N);
+
+    cudaMemcpy(C, Z, vectorBytes, cudaMemcpyDeviceToHost);
+
+    cout << "Addition: ";
+    print(C, N);
+
+    delete[] A;
+    delete[] B;
+    delete[] C;
+    cudaFree(X);
+    cudaFree(Y);
+    cudaFree(Z);
+
+    return 0;
+}
+
+!nvcc -o ass4twolargevector ass4twolargevector.cu -Xcompiler -fopenmp
+!./ass4twolargevector
+
+Output :
+Vector A: 3 6 7 5 
+Vector B: 3 5 6 2 
+Addition: 6 11 13 7 
+
+Code Explaination:
+
+Explanation
+__global__ void add(int* A, int* B, int* C, int size) { ... }:
+CUDA kernel to add two vectors element-wise.
+Each thread calculates the sum of corresponding elements from vectors A and B and stores the result in vector C.
+blockIdx.x, blockDim.x, and threadIdx.x are used to calculate the global thread ID (tid) for each thread.
+if (tid < size) ensures that threads only operate on valid elements within the vector.
+void initialize(int* vector, int size) { ... }:
+Function to initialize a vector (A or B) with random values from 0 to 9.
+void print(int* vector, int size) { ... }:
+Function to print the elements of a vector.
+int main() { ... }:
+Main function:
+Sets the vector size N to 4.
+Creates host vectors A, B, and C with size N.
+Initializes vectors A and B with random values.
+Prints vectors A and B.
+Allocates memory for device vectors X, Y, and Z using cudaMalloc.
+Copies vectors A and B from host to device using cudaMemcpy.
+Defines threadsPerBlock and blocksPerGrid for kernel launch.
+Launches the add kernel with the specified configuration to add vectors X and Y, storing the result in Z.
+Copies vector Z from device to host using cudaMemcpy.
+Prints the result vector C (the addition of A and B).
+Frees host and device memory using delete[] and cudaFree.
+Compilation and Execution
+!nvcc -o ass4twolargevector ass4twolargevector.cu -Xcompiler -fopenmp: Compiles the CUDA C++ code using nvcc with OpenMP support.
+!./ass4twolargevector: Executes the compiled program to add two large vectors and prints the result.
+This CUDA C++ program demonstrates how to add two large vectors (A and B) on the GPU using CUDA kernels. It initializes the vectors with random values, copies them to the GPU, performs the addition using a CUDA kernel, and then copies the result back to the host for printing.
+
+----------------------------------------------------------------------------------------------------------
+
+ASS 4 Matrix Multiplication
+
+# ass 4 matrix multiplication
+%%writefile ass4matrixmultiplication.cu
+
+
+// matrix_multiplication.cu
+
+#include <iostream>
+using namespace std;
+
+__global__ void multiply(int* A, int* B, int* C, int size) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (row < size && col < size) {
+        int sum = 0;
+        for (int i = 0; i < size; i++) {
+            sum += A[row * size + i] * B[i * size + col];
+        }
+        C[row * size + col] = sum;
+    }
+}
+
+int main() {
+    const int N = 2;
+    const int matrixSize = N * N;
+    const size_t matrixBytes = matrixSize * sizeof(int);
+
+    int* A, * B, * C;
+    A = new int[matrixSize];
+    B = new int[matrixSize];
+    C = new int[matrixSize];
+
+    // Initialize matrices A and B
+    for (int i = 0; i < matrixSize; i++) {
+        A[i] = rand() % 10;
+        B[i] = rand() % 10;
+    }
+
+    // Print matrices A and B
+    cout << "Matrix A: \n";
+    for (int i = 0; i < matrixSize; i++) {
+        cout << A[i] << " ";
+        if ((i + 1) % N == 0) cout << endl;
+    }
+    cout << endl;
+
+    cout << "Matrix B: \n";
+    for (int i = 0; i < matrixSize; i++) {
+        cout << B[i] << " ";
+        if ((i + 1) % N == 0) cout << endl;
+    }
+    cout << endl;
+
+    int* d_A, * d_B, * d_C;
+    cudaMalloc(&d_A, matrixBytes);
+    cudaMalloc(&d_B, matrixBytes);
+    cudaMalloc(&d_C, matrixBytes);
+
+    cudaMemcpy(d_A, A, matrixBytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, matrixBytes, cudaMemcpyHostToDevice);
+
+    dim3 threadsPerBlock(16, 16);
+    dim3 numBlocks((N + 15) / 16, (N + 15) / 16);
+
+    multiply<<<numBlocks, threadsPerBlock>>>(d_A, d_B, d_C, N);
+
+    cudaMemcpy(C, d_C, matrixBytes, cudaMemcpyDeviceToHost);
+
+    // Print result matrix C
+    cout << "Result Matrix C: \n";
+    for (int i = 0; i < matrixSize; i++) {
+        cout << C[i] << " ";
+        if ((i + 1) % N == 0) cout << endl;
+    }
+    cout << endl;
+
+    delete[] A;
+    delete[] B;
+    delete[] C;
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+
+    return 0;
+}
+
+!nvcc -o ass4matrixmultiplication ass4matrixmultiplication.cu -Xcompiler -fopenmp
+!./ass4matrixmultiplication
+
+Output :
+
+Matrix A: 
+3 7 
+3 6 
+
+Matrix B: 
+6 5 
+5 2 
+
+Result Matrix C: 
+53 29 
+48 27 
+
+
+Code Explaination:
+
+Explanation
+__global__ void multiply(int* A, int* B, int* C, int size) { ... }:
+CUDA kernel to perform matrix multiplication.
+Each thread calculates the value of one element in the result matrix C.
+The row and col variables are calculated based on the thread and block indices.
+The kernel computes the dot product of the corresponding rows and columns of matrices A and B to get the result matrix C.
+int main() { ... }:
+Main function:
+Defines the size of the square matrices (N x N) as 2.
+Calculates the total number of elements in each matrix and the total bytes required.
+Creates host matrices A, B, and C with size N x N.
+Initializes matrices A and B with random values.
+Prints matrices A and B.
+Allocates memory for device matrices d_A, d_B, and d_C using cudaMalloc.
+Copies matrices A and B from host to device using cudaMemcpy.
+Defines threadsPerBlock as a 16x16 block configuration and numBlocks based on matrix size.
+Launches the multiply kernel with the specified configuration to perform matrix multiplication.
+Copies the result matrix C from device to host using cudaMemcpy.
+Prints the result matrix C.
+Compilation and Execution
+!nvcc -o ass4matrixmultiplication ass4matrixmultiplication.cu -Xcompiler -fopenmp: Compiles the CUDA C++ code using nvcc with OpenMP support.
+!./ass4matrixmultiplication: Executes the compiled program to perform matrix multiplication and prints the result.
+This CUDA C++ program demonstrates how to perform matrix multiplication on the GPU using CUDA kernels. It initializes two square matrices A and B with random values, copies them to the GPU, performs the matrix multiplication using a CUDA kernel, and then copies the result matrix C back to the host for printing.
+
+
+Theory:
+
+CUDA:
+CUDA programming is especially well-suited to address problems that can be expressed as data- parallel
+computations. Any applications that process large data sets can use a data-parallel model to speed up the
+computations. Data-parallel processing maps data elements to parallel threads.
+
+The first step in designing a data parallel program is to partition data across threads, with each thread working on a
+portion of the data. The first step in designing a data parallel program is to partition data across threads, with each
+thread working on a portion of the data.
+CUDA Architecture:
+A heterogeneous application consists of two parts:
+ Host code
+ Device code
+
+Host code runs on CPUs and device code runs on GPUs. An application executing on a heterogeneous platform is
+typically initialized by the CPU. The CPU code is responsible for managing the environment, code, and data for the
+device before loading compute-intensive tasks on the device. With computational intensive applications, program
+sections often exhibit a rich amount of data parallelism. GPUs are used to accelerate the execution of this portion of
+data parallelism. When a hardware component that is physically separate from the CPU is used to accelerate
+computationally intensive sections of an application, it is referred to as a hardware accelerator. GPUs are arguably
+the most common example of a hardware accelerator.
+
+A typical processing flow of a CUDA program follows this pattern:
+1. Copy data from CPU memory to GPU memory.
+2. Invoke kernels to operate on the data stored in GPU memory.
+3. Copy data back from GPU memory to CPU memory 
+
+Organizing Threads:
+When a kernel function is launched from the host side, execution is moved to a device where a large number of
+threads are generated and each thread executes the statements specified by the
+kernel function.
+
+CUDA organizes grids and blocks in three dimensions. The dimensions of a grid and a block are specified by the
+following two built-in variables:
+ blockDim (block dimension, measured in threads)
+ gridDim (grid dimension, measured in blocks) 
+
+
+

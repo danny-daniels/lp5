@@ -1,0 +1,356 @@
+Assignment 1 Boston Housing:
+
+Code Explanation
+Let's break down the provided Python code for performing Linear Regression and Neural Network Regression:
+
+Libraries Imported
+import pandas as pd: Importing pandas library for data manipulation and analysis.
+import numpy as np: Importing numpy library for mathematical operations.
+from sklearn import metrics: Importing metrics module from sklearn for evaluating model performance.
+import matplotlib.pyplot as plt: Importing matplotlib.pyplot for plotting.
+import seaborn as sns: Importing seaborn for enhanced plotting.
+import warnings: Importing warnings module to handle warnings.
+
+Loading and Preprocessing Data
+data = pd.read_csv("BostonHousing.csv"): Loading data from a CSV file into a pandas DataFrame called data.
+target = data['medv']: Extracting the target variable ('medv') from the DataFrame.
+data.head(): Displaying the first few rows of the DataFrame.
+data.columns: Displaying the column names of the DataFrame.
+data.shape: Displaying the shape of the DataFrame (rows, columns).
+data.dtypes: Displaying the data types of columns.
+data.isnull().sum(): Checking for missing values in columns.
+data[data.isnull().any(axis=1)]: Displaying rows with missing values.
+data.fillna(value=data.mean(), inplace=True): Filling missing values with the mean of respective columns.
+data.describe(): Displaying descriptive statistics of the DataFrame.
+
+Exploratory Data Analysis
+corr = data.corr(): Calculating the correlation matrix.
+plt.figure(figsize=(20,20)): Creating a large figure for plotting.
+sns.heatmap(corr, cbar=True, square=True, fmt='.1f', annot=True, annot_kws={'size':15}, cmap='gray'): Creating a heatmap to visualize correlations between features.
+
+Linear Regression
+X = data: Assigning all features to X.
+y = target: Assigning target variable to y.
+train_test_split: Splitting data into training and testing sets.
+LinearRegression(): Creating a Linear Regression model.
+lm.fit(X_train, y_train): Training the Linear Regression model on the training data.
+lm.intercept_: Intercept of the Linear Regression model.
+pd.DataFrame([X_train.columns,lm.coef_]).T: Creating a DataFrame of coefficients.
+y_pred = lm.predict(X_train): Predicting target values on the training set.
+
+Model Evaluation:
+metrics.r2_score(y_train, y_pred): Calculating R^2 score.
+metrics.mean_absolute_error(y_train, y_pred): Calculating Mean Absolute Error (MAE).
+metrics.mean_squared_error(y_train, y_pred): Calculating Mean Squared Error (MSE).
+np.sqrt(metrics.mean_squared_error(y_train, y_pred)): Calculating Root Mean Squared Error (RMSE).
+
+Plotting:
+Scatter plot of actual vs predicted prices.
+Histogram of residuals.
+Neural Network Regression (using Keras)
+
+Data Preprocessing:
+StandardScaler(): Standardizing the features by removing the mean and scaling to unit variance.
+sc.fit_transform(X_train), sc.transform(X_test): Applying scaling to the training and testing data.
+
+Neural Network Model:
+model = Sequential(): Creating a Sequential model.
+model.add(Dense(128, activation='relu', input_dim=14)): Adding a Dense layer with 128 units and ReLU activation.
+model.add(Dense(64, activation='relu')): Adding another Dense layer with 64 units and ReLU activation.
+model.add(Dense(32, activation='relu')): Adding another Dense layer with 32 units and ReLU activation.
+model.add(Dense(16, activation='relu')): Adding another Dense layer with 16 units and ReLU activation.
+model.add(Dense(1)): Adding the output layer.
+model.compile(optimizer='adam', loss='mean_squared_error'): Compiling the model with Adam optimizer and MSE loss.
+model.fit(X_train, y_train, epochs=100): Training the model on the training data for 100 epochs.
+
+Predictions and Evaluation:
+y_pred = model.predict(X_test): Predicting target values on the testing set.
+
+Model Evaluation:
+r2_score(y_test, y_pred): Calculating R^2 score.
+mean_squared_error(y_test, y_pred): Calculating RMSE.
+
+
+Execution
+The code executes the Linear Regression and Neural Network Regression models on the Boston Housing dataset.
+It displays various metrics such as R^2 score, MAE, MSE, RMSE, and plots for analysis.
+
+Note
+The code assumes familiarity with pandas, scikit-learn, and Keras libraries.
+It performs data loading, preprocessing, model creation, training, prediction, and evaluation for both Linear Regression and Neural Network Regression.
+The Linear Regression model is used first, followed by a Neural Network Regression model implemented using Keras.
+
+Theory:
+
+Linear Regression:
+Linear regression is one of the easiest and most popular Machine Learning algorithms. It is a statistical method
+that is used for predictive analysis. Linear regression makes predictions for continuous/real or numeric variables
+such as sales, salary, age, product price, etc.
+Linear regression algorithm shows a linear relationship between a dependent (y) and one or more independent
+(y) variables, hence called as linear regression. Since linear regression shows the linear relationship, which
+means it finds how the value of the dependent variable is changing according to the value of the independent
+variable.
+The linear regression model provides a sloped straight line representing the relationship between the variables.
+
+Mathematically, we can represent a linear regression as:
+y= a0+a1x+ ε
+Here,
+Y= Dependent Variable (Target Variable)
+X= Independent Variable (predictor Variable)
+a0= intercept of the line (Gives an additional degree of freedom)
+a1 = Linear regression coefficient (scale factor to each input value).
+ε = random error
+The values for x and y variables are training datasets for Linear Regression model representation.
+
+Deep Neural Network:
+A deep neural network (DNN) is an ANN with multiple hidden layers between the input and output layers.
+Similar to shallow ANNs, DNNs can model complex non-linear relationships.
+The main purpose of a neural network is to receive a set of inputs, perform progressively complex calculations
+on them, and give output to solve real world problems like classification. We restrict ourselves to feed forward
+neural networks.
+We have an input, an output, and a flow of sequential data in a deep network
+
+Neural networks are widely used in supervised learning and reinforcement learning problems. These networks
+are based on a set of layers connected to each other.
+In deep learning, the number of hidden layers, mostly non-linear, can be large; say about 1000 layers.
+DL models produce much better results than normal ML networks.
+We mostly use the gradient descent method for optimizing the network and minimising the loss function.
+We can use the Imagenet, a repository of millions of digital images to classify a dataset into categories like cats
+and dogs. DL nets are increasingly used for dynamic images apart from static ones and for time series and text
+analysis.
+Training the data sets forms an important part of Deep Learning models. In addition, Backpropagation is the
+main algorithm in training DL models.
+DL deals with training large neural networks with complex input output transformations.
+One example of DL is the mapping of a photo to the name of the person(s) in photo as they do on social
+networks and describing a picture with a phrase is another recent application of DL.
+
+
+
+
+Assignment 3 Fashion Dataset:
+
+Code Explanation
+Here's a detailed explanation of the provided Python code for building and training a neural network using the Fashion MNIST dataset:
+
+TensorFlow and Keras Import
+import tensorflow as tf: Importing TensorFlow library for building and training neural networks.
+from tensorflow import keras: Importing the Keras API from TensorFlow.
+Data Loading and Preprocessing
+fashion_mnist = keras.datasets.fashion_mnist: Loading the Fashion MNIST dataset from Keras.
+(train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data(): Loading and splitting the dataset into training and testing images with corresponding labels.
+class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']: Defining class names for the labels.
+Data Exploration
+train_images.shape: Checking the shape of the training images array.
+len(train_labels): Getting the number of training labels.
+train_labels: Displaying the training labels.
+test_images.shape: Checking the shape of the testing images array.
+len(test_labels): Getting the number of testing labels.
+Data Visualization
+Displaying a sample image from the dataset using matplotlib.pyplot:
+plt.figure(): Creating a new figure.
+plt.imshow(train_images[0]): Displaying the first training image.
+plt.colorbar(): Adding a color bar.
+plt.grid(False): Removing grid lines.
+plt.show(): Showing the image.
+Data Normalization
+Normalizing the pixel values of the images:
+train_images = train_images / 255.0: Normalizing training images.
+test_images = test_images / 255.0: Normalizing testing images.
+Model Building
+Creating a Sequential model using Keras:
+model = keras.Sequential([...]): Initializing a sequential model.
+keras.layers.Flatten(input_shape=(28, 28)): Flattening the 28x28 input images.
+keras.layers.Dense(128, activation=tf.nn.relu): Adding a dense layer with 128 units and ReLU activation.
+keras.layers.Dense(10, activation=tf.nn.softmax): Adding the output layer with 10 units (for 10 classes) and softmax activation.
+Model Compilation
+Compiling the model with optimizer, loss function, and metrics:
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy']): Using Adam optimizer, sparse categorical cross-entropy loss, and accuracy metric.
+Model Training
+Training the model on the training data:
+model.fit(train_images, train_labels, epochs=5): Training the model for 5 epochs.
+Model Evaluation
+Evaluating the model on the test data:
+test_loss, test_acc = model.evaluate(test_images, test_labels): Evaluating the model's performance on the test dataset and obtaining test accuracy.
+Making Predictions
+Making predictions on the test data:
+predictions = model.predict(test_images): Getting predictions for the test images.
+Plotting Predictions
+Plotting images with their predicted and true labels:
+plot_image(i, predictions, test_labels, test_images): Function to plot an image with its predicted and true labels.
+plot_value_array(i, predictions, test_labels): Function to plot the prediction probabilities for each class.
+Additional Visualization
+Displaying sample images with predictions and probabilities:
+Looping through a set of images and plotting their predicted labels and prediction probabilities.
+Single Image Prediction
+Predicting a single image:
+Taking the first image from the test set and adding it to a batch: img = (np.expand_dims(img,0)).
+predictions_single = model.predict(img): Making predictions on the single image.
+Final Output
+Printing the prediction array for the single image: predictions_single.
+Plotting the prediction probabilities for the single image using plot_value_array.
+Getting the predicted class for the single image: np.argmax(predictions_single[0]).
+Note
+The code uses TensorFlow and Keras to build a simple neural network for image classification on the Fashion MNIST dataset.
+It covers loading data, preprocessing, model building, training, evaluation, prediction, and visualization of results.
+The neural network architecture includes a Flatten layer, followed by two Dense layers.
+The model is trained for 5 epochs and evaluated on the test set.
+Predictions are made on both the test set and single images, and results are visualized for analysis.
+
+Theory:
+
+Convolutional neural network (CNN):
+Convolutional Neural Network is one of the main categories to do image classification and image
+recognition in neural networks. Scene labeling, objects detections, and face recognition, etc., are some of the
+areas where convolutional neural networks are widely used.
+CNN takes an image as input, which is classified and process under a certain category such as dog, cat, lion,
+tiger, etc. The computer sees an image as an array of pixels and depends on the resolution of the image. Based
+on image resolution, it will see as h * w * d, where h= height w= width and d= dimension. For example, An
+RGB image is 6 * 6 * 3 array of the matrix, and the grayscale image is 4 * 4 * 1 array of the matrix.
+In CNN, each input image will pass through a sequence of convolution layers along with pooling, fully
+connected layers, filters (Also known as kernels). After that, we will apply the Soft-max function to classify
+an object with probabilistic values 0 and 1.
+
+Convolution Layer:
+Convolution layer is the first layer to extract features from an input image. By learning image features using a
+small square of input data, the convolutional layer preserves the relationship between pixels. It is a
+mathematical operation which takes two inputs such as image matrix and a kernel or filter.
+
+Strides:
+Stride is the number of pixels which are shift over the input matrix. When the stride is equaled to 1, then we
+move the filters to 1 pixel at a time and similarly, if the stride is equaled to 2, then we move the filters to 2
+pixels at a time. The following figure shows that the convolution would work with a stride of 2
+
+Padding:
+Padding plays a crucial role in building the convolutional neural network. If the image will get shrink and if
+we will take a neural network with 100's of layers on it, it will give us a small image after filtered in the end.
+If we take a three by three filter on top of a grayscale image and do the convolving then what will happen?
+
+Pooling Layer:
+Pooling layer plays an important role in pre-processing of an image. Pooling layer reduces the number of
+parameters when the images are too large. Pooling is "downscaling" of the image obtained from the previouslayers. It can be compared to shrinking an image to reduce its pixel density. Spatial pooling is also called
+downsampling or subsampling, which reduces the dimensionality of each map but retains the important
+information. There are the following types of spatial pooling:
+
+Max Pooling:
+Max pooling is a sample-based discretization process. Its main objective is to downscale an input
+representation, reducing its dimensionality and allowing for the assumption to be made about features
+contained in the sub-region binned.
+Max pooling is done by applying a max filter to non-overlapping sub-regions of the initial representation.
+
+Average Pooling:
+Down-scaling will perform through average pooling by dividing the input into rectangular pooling regions
+and computing the average values of each region.
+
+Sum Pooling:
+The sub-region for sum pooling or mean pooling are set exactly the same as for max-pooling but instead of
+using the max function we use sum or mean.
+
+Fully Connected Layer:
+The fully connected layer is a layer in which the input from the other layers will be flattened into a vector and
+sent. It will transform the output into the desired number of classes by the network
+
+
+Assignment 4 Google Stock Prices :
+
+Data Preparation
+training_set=pd.read_csv('Google_Stock_Price_Train.csv'): Reading the training dataset from a CSV file.
+training_set: Displaying the training dataset.
+training_set = training_set.iloc[:,1:2].values: Extracting the 'Open' stock price column and converting it to a NumPy array.
+Data Preprocessing
+from sklearn.preprocessing import MinMaxScaler: Importing MinMaxScaler for feature scaling.
+sc = MinMaxScaler(): Creating a scaler object.
+training_set = sc.fit_transform(training_set): Normalizing the training data using Min-Max scaling.
+X_train = training_set[0:1257]: Creating the input sequence X_train (1257 samples).
+y_train = training_set[1:1258]: Creating the output sequence y_train (shifted by one).
+Reshaping for LSTM
+X_train = np.reshape(X_train, (1257, 1, 1)): Reshaping the input data to fit the LSTM input shape (batch_size, timesteps, input_dim).
+Building the LSTM Model
+from keras.models import Sequential: Importing Sequential model from Keras.
+from keras.layers import Dense: Importing Dense layer from Keras.
+from keras.layers import LSTM: Importing LSTM layer from Keras.
+regressor = Sequential(): Initializing a sequential model.
+regressor.add(LSTM(units = 4, activation = 'sigmoid', input_shape = (None, 1))): Adding an LSTM layer with 4 units, sigmoid activation, and input shape (None, 1) for variable-length sequences.
+regressor.add(Dense(units = 1)): Adding a Dense output layer with 1 unit.
+Compiling and Training the Model
+regressor.compile(optimizer = 'adam', loss = 'mean_squared_error'): Compiling the model with Adam optimizer and mean squared error loss.
+regressor.fit(X_train, y_train, batch_size = 32, epochs = 200): Training the model with batch size 32 and 200 epochs.
+Testing the Model
+test_set = pd.read_csv("Google_Stock_Price_Test.csv"): Reading the test dataset.
+real_stock_price = test_set.iloc[:,1:2].values: Extracting the 'Open' stock price column for the test set.
+inputs = real_stock_price: Assigning the test set as inputs for prediction.
+inputs = sc.transform(inputs): Scaling the inputs using the same scaler used for training.
+inputs = np.reshape(inputs, (20, 1, 1)): Reshaping the inputs for prediction (20 samples).
+predicted_stock_price = regressor.predict(inputs): Predicting the stock prices using the trained model.
+predicted_stock_price = sc.inverse_transform(predicted_stock_price): Inverse transforming the predicted prices to their original scale.
+Visualizing Predictions
+plt.plot(real_stock_price, color = 'red', label = 'Real Google Stock Price'): Plotting the real stock prices from the test set.
+plt.plot(predicted_stock_price, color = 'blue', label = 'Predicted Google Stock Price'): Plotting the predicted stock prices.
+plt.title('Google Stock Price Prediction'): Setting the title of the plot.
+plt.xlabel('Time'): Setting the x-axis label.
+plt.ylabel('Google Time Price'): Setting the y-axis label.
+plt.legend(): Displaying the legend.
+plt.show(): Showing the plot for test set predictions.
+Evaluating on Training Data
+real_stock_price = pd.read_csv("Google_Stock_Price_Train.csv"): Reading the training dataset for comparison.
+real_stock_price = real_stock_price.iloc[:,1:2].values: Extracting the 'Open' stock price column for the training set.
+predicted_stock_price_train = regressor.predict(X_train): Predicting the stock prices on the training set.
+predicted_stock_price_train = sc.inverse_transform(predicted_stock_price_train): Inverse transforming the predicted prices to their original scale.
+Visualizing Training Predictions
+plt.plot(real_stock_price, color = 'red', label = 'Real Google Stock Price'): Plotting the real stock prices from the training set.
+plt.plot(predicted_stock_price_train, color = 'blue', label = 'Predicted Google Stock Price'): Plotting the predicted stock prices on the training set.
+plt.title('Google Stock Price Prediction'): Setting the title of the plot.
+plt.xlabel('Time'): Setting the x-axis label.
+plt.ylabel('Google Time Price'): Setting the y-axis label.
+plt.legend(): Displaying the legend.
+plt.show(): Showing the plot for training set predictions.
+Summary
+The code demonstrates building an LSTM model using Keras to predict stock prices.
+It covers data preprocessing, model building, training, testing,
+
+
+Theory:
+
+Recurrent neural network (RNN):
+A recurrent neural network (RNN) is a kind of artificial neural network mainly used in speech
+recognition and natural language processing (NLP). RNN is used in deep learning and in the development
+of models that imitate the activity of neurons in the human brain.
+Recurrent Networks are designed to recognize patterns in sequences of data, such as text, genomes,
+handwriting, the spoken word, and numerical time series data emanating from sensors, stock markets, and
+government agencies.
+A recurrent neural network looks similar to a traditional neural network except that a memory-state is added
+to the neurons. The computation is to include a simple memory.
+The recurrent neural network is a type of deep learning-oriented algorithm, which follows a sequential
+approach. In neural networks, we always assume that each input and output is dependent on all other layers.
+These types of neural networks are called recurrent because they sequentially perform mathematical
+computations.
+
+
+Application of RNN:
+RNN has multiple uses when it comes to predicting the future. In the financial industry, RNN can help predict
+stock prices or the sign of the stock market direction (i.e., positive or negative).
+RNN is used for an autonomous car as it can avoid a car accident by anticipating the route of the vehicle.
+RNN is widely used in image captioning, text analysis, machine translation, and sentiment analysis. For
+example, one should use a movie review to understanding the feeling the spectator perceived after watching the movie. Automating this task is very useful when the movie company can not have more time to review,
+consolidate, label, and analyze the reviews. The machine can do the job with a higher level of accuracy.
+Limitations of RNN:
+RNN is supposed to carry the information in time. However, it is quite challenging to propagate all this
+information when the time step is too long. When a network has too many deep layers, it becomes
+untrainable. This problem is called: vanishing gradient problem.
+If we remember, the neural network updates the weight use of the gradient descent algorithm. The gradient
+grows smaller when the network progress down to lower layers.
+The gradient stays constant, meaning there is no space for improvement. The model learns from a change in
+its gradient; this change affects the network's output. If the difference in the gradient is too small (i.e., the
+weight change a little), the system can't learn anything and so the output. Therefore, a system facing a
+vanishing gradient problem cannot converge towards the right solution
+
+Training through RNN:
+o The network takes a single time-step of the input.
+o We can calculate the current state through the current input and the previous state.
+o Now, the current state through ht-1 for the next state.
+o There is n number of steps, and in the end, all the information can be joined.
+o After completion of all the steps, the final step is for calculating the output.
+o At last, we compute the error by calculating the difference between actual output and the predicted
+output.
+o The error is backpropagated to the network to adjust the weights and produce a better outcome.
+
+
